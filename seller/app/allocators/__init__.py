@@ -1,9 +1,10 @@
+from .counter import CounterAllocator
 from .naive import NaiveAllocator
+from .serializable import SerializableAllocator
 from .skiplocked import SkipLockedAllocator
 
 ALLOCATORS = {
-    NaiveAllocator.name: NaiveAllocator,
-    SkipLockedAllocator.name: SkipLockedAllocator,
+    cls.name: cls for cls in (NaiveAllocator, SkipLockedAllocator, CounterAllocator, SerializableAllocator)
 }
 
 

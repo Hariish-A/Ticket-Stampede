@@ -11,7 +11,7 @@ from app import db, sale
 from app.allocators import get
 from app.sale import Purchased, RequestIdConflict, SoldOut
 
-SAFE = ["skiplocked"]
+SAFE = ["skiplocked", "counter", "serializable"]
 
 
 @pytest.fixture

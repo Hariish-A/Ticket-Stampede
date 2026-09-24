@@ -53,6 +53,11 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="closed-loop requests in flight per process while measuring the ceiling")
     c.add_argument("--duration", type=float, default=5.0, help="seconds of load per measurement")
     c.add_argument("--scenario", default="calibrate")
+
+    m = sub.add_parser("compare", help="side-by-side table of saved run reports")
+    m.add_argument("reports", nargs="+", help="result directories (or report.json files)")
+    m.add_argument("--title", default="Comparison")
+    m.add_argument("--write", help="also write the table to this file")
     return p.parse_args(argv)
 
 
@@ -74,8 +79,19 @@ async def _get_status(target: str) -> dict:
             return body
 
 
+async def _get_metrics(target: str) -> dict:
+    """Allocator counters from GET /metrics; {} if the target has none."""
+    try:
+        async with aiohttp.ClientSession(base_url=target, timeout=aiohttp.ClientTimeout(total=5)) as s:
+            async with s.get("/metrics") as resp:
+                return (await resp.json(content_type=None)).get("counters", {}) if resp.status == 200 else {}
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError):
+        return {}
+
+
 async def run(args: argparse.Namespace) -> int:
     started = datetime.now(timezone.utc)
+    metrics_before = await _get_metrics(args.target)
     reset = None if args.no_reset else await _post_reset(args.target, args.tickets)
     if args.expect_allocator:
         actual = (reset or await _get_status(args.target)).get("allocator")
@@ -108,6 +124,9 @@ async def run(args: argparse.Namespace) -> int:
     checks = verify.verify(status, attempts, total=args.tickets, audit=audit)
     summary = stats.summarize(stampede, t0, workers)  # load numbers: the stampede only
     summary["probes"] = len(probes)
+    metrics_after = await _get_metrics(args.target)
+    summary["server_counters"] = {k: v - metrics_before.get(k, 0) for k, v in metrics_after.items()
+                                  if v - metrics_before.get(k, 0)}
 
     meta = {
         "scenario": args.scenario,
@@ -173,8 +192,23 @@ async def calibrate(args: argparse.Namespace) -> int:
     return 0
 
 
+def compare(args: argparse.Namespace) -> int:
+    loaded = []
+    for r in args.reports:
+        path = Path(r)
+        path = path / "report.json" if path.is_dir() else path
+        loaded.append((path.parent.name, json.loads(path.read_text())))
+    md = report.render_comparison(args.title, loaded)
+    print(md)
+    if args.write:
+        Path(args.write).write_text(md)
+    return 0
+
+
 def main(argv=None) -> int:
     args = parse_args(argv)
+    if args.command == "compare":
+        return compare(args)
     if args.command == "run":
         return asyncio.run(run(args))
     if args.command == "calibrate":

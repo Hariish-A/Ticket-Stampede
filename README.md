@@ -2,7 +2,7 @@
 
 A ticket seller that must sell exactly N tickets to a stampede of buyers without ever overselling, plus the load client that attacks it and checks the result.
 
-- **Seller** (`seller/`): FastAPI + asyncpg on Postgres 16. Endpoints: `POST /reset`, `POST /buy`, `GET /status`. The allocator is chosen with `ALLOCATOR=skiplocked|naive`, and the default is `skiplocked`. The invariants are enforced by Postgres constraints ([schema.sql](seller/schema.sql)); the claim is a single `UPDATE … FOR UPDATE SKIP LOCKED` ([skiplocked.py](seller/app/allocators/skiplocked.py)).
+- **Seller** (`seller/`): FastAPI + asyncpg on Postgres 16. Endpoints: `POST /reset`, `POST /buy`, `GET /status`. The allocator is chosen with `ALLOCATOR=skiplocked|counter|serializable|naive`, and the default is `skiplocked` (chosen by the C2 measurement). `GET /metrics` exposes the allocator's counters (retries, fallbacks). The invariants are enforced by Postgres constraints ([schema.sql](seller/schema.sql)); the claim is a single `UPDATE … FOR UPDATE SKIP LOCKED` ([skiplocked.py](seller/app/allocators/skiplocked.py)).
 - **Buyer** (`buyer/`): an open-loop load client. It fires a scheduled stampede with duplicate and replayed request ids, then verifies the four invariants against `/status` **and** against its own record of what each buyer was told.
 
 Design and trade-offs: [DECISIONS.md](DECISIONS.md) (written at M10). The working plan is in [Plan.md](Plan.md), and progress in [Progress.md](Progress.md).
@@ -15,10 +15,11 @@ Design and trade-offs: [DECISIONS.md](DECISIONS.md) (written at M10). The workin
 ```bash
 git clone <this repo> && cd ticket-stampede
 
-./scripts/test.sh      # 28 buyer unit tests + 11 seller integration tests against real Postgres
+./scripts/test.sh      # 28 buyer unit tests + 31 seller integration tests (each race x 3 safe strategies) against real Postgres
 ./scripts/c1.sh        # the same 51,000-request stampede against the naive seller (FAILs) and the safe one (PASSes)
 ./scripts/naive.sh     # just the naive seller
 ./scripts/calibrate.sh # the client's own ceiling against nginx returning canned responses (no seller in the loop)
+./scripts/c2.sh        # serializable vs counter vs skiplocked on the brief's sale and on a 5,000-ticket sale (~7 min)
 ```
 Each run prints a report and saves it to `results/<timestamp>-<scenario>/`:
 - `report.md` and `report.json`, which are committed;
@@ -79,4 +80,5 @@ Clean up with `docker compose down -v`.
 | M1: the naive seller gets caught | done |
 | M2: the safe seller passes | done |
 | M3: a buyer we can trust at scale | done |
-| M4: choosing the allocation strategy from evidence | next |
+| M4: choosing the allocation strategy from evidence | done |
+| M5: how much load, and where is the bottleneck | next |

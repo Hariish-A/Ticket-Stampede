@@ -57,6 +57,13 @@ async def health():
     return {"ok": True, "allocator": settings.allocator}
 
 
+@app.get("/metrics")
+async def metrics():
+    """What the allocator had to do (retries, fallbacks), since this process started.
+    The buyer reads it before and after a run and reports the difference."""
+    return {"allocator": settings.allocator, "counters": dict(app.state.allocator.counters)}
+
+
 @app.post("/reset")
 async def reset(body: ResetIn):
     try:

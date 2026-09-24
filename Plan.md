@@ -194,7 +194,8 @@ naive_sales(ticket_no int, user_id text, request_id text)       -- NO constraint
 | Redis + Lua | Durability needs `appendfsync always`, and the Redis itself can't enforce the invariants with constraints | Reasoning (Session 2) |
 | Redis in front of Postgres | Writing to two stores means they can disagree, which puts invariant 4 at risk | Reasoning |
 | Microservices | Splitting the seller adds network calls where partial failures break the invariants | Reasoning |
-| `counter` / `serializable` strategies | To be decided by the C2 measurement | `results/` (M4) |
+| `serializable` (SERIALIZABLE + retry) | Correct, but under contention nearly every buyer reads the same lowest ticket and aborts. Large sale: 24,927 retries, 241 gave up, only 1,472/5,000 sold by the end of the run, and 93% of requests got 503. | `results/*c2-summary.md` (M4) |
+| `counter` (single hot row) | Correct, but every claim queues on one row lock: about 250 claims/s. Large sale: 4,704/5,000 sold, 16,260 503s, p50 1 s. Acceptable at 100 tickets (sold out in 0.94 s vs 0.66 s). | `results/*c2-summary.md` (M4) |
 | Closed-loop client | Hides stalls (coordinated omission) | `results/` (M6) |
 
 ## 4. Design decisions
@@ -218,6 +219,7 @@ naive_sales(ticket_no int, user_id text, request_id text)       -- NO constraint
 | D16 | The open-loop client caps in-flight requests per process (`--max-inflight`, default 2000). The send timestamp is taken **after** a slot is acquired. | Without a cap, an overloaded client floods itself: in the first calibration, one process offered 60k/s spent 7 min and got 0 responses. With the cap, any backlog shows up as client send lag instead of disappearing. | AI (M3) | 2026-09-24 |
 | D17 | The client ceiling is measured **closed-loop** against a zero-work nginx target, then checked open-loop at half the ceiling | The target never stalls, so closed-loop hides nothing, and it measures the maximum directly. The open-loop check shows the client keeps its schedule at real test rates. | AI (M3) | 2026-09-24 |
 | D18 | The live auditor runs inside the coordinator process while the workers fire, polling `/status` every 100 ms | The coordinator is otherwise idle, so no extra process is needed. The observer effect (about 10 extra /status requests/s on the seller) is small and stated. | AI (M3) | 2026-09-24 |
+| D19 | **`skiplocked` stays the default, now chosen on evidence (C2).** | 100 tickets: sold out in 0.66 s vs 0.94 (counter) vs 1.79 (serializable); fewest 503s. 5,000 tickets: sold all 5,000 in 5.4 s with p50 55 ms, while counter reached about 250 claims/s and serializable 1,472 tickets with 24,927 retries. Caveat: at the brief's 100 tickets the gap is modest. | AI proposal, confirmed by measurement (M4) | 2026-09-24 |
 
 ## 5. Testing and verification strategy
 | Layer | What | What it proves |
@@ -288,7 +290,7 @@ Rules:
 - The client's ceiling is measured.
 - The auditor shows 0 live violations on `skiplocked`, and catches violations on `naive`.
 
-### M4: Choosing the allocation strategy from evidence (C2) · ~1.5 h
+### M4: Choosing the allocation strategy from evidence (C2) · ~1.5 h · ✅ DONE 2026-09-24
 **Build**
 - The `counter` and `serializable` (with retries) strategies, with the retry count exposed.
 

@@ -40,5 +40,6 @@ class SkipLockedAllocator(ConstrainedAllocator):
     async def claim(self, conn: asyncpg.Connection, user_id: str, request_id: str) -> int | None:
         ticket_no = await conn.fetchval(CLAIM_SKIP_LOCKED, user_id, request_id)
         if ticket_no is None:
+            self.counters["blocking_fallbacks"] += 1
             ticket_no = await conn.fetchval(CLAIM_WAIT, user_id, request_id)
         return ticket_no

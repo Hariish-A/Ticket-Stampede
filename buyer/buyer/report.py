@@ -43,12 +43,36 @@ def render_markdown(meta: dict, stats: dict, checks: list[Check]) -> str:
     if stats["errors"]:
         lines.append(f"Transport errors: `{stats['errors']}`  ")
     lines.append(f"First sold-out answer at t = {stats['first_sold_out_at_s']} s  ")
+    if stats.get("server_counters"):
+        lines.append(f"Seller counters during the run (GET /metrics): `{stats['server_counters']}`  ")
     client = stats.get("client") or {}
     if client.get("processes"):
         lines.append(f"Client health: {client['processes']} worker processes, CPU per worker "
                      f"`{[f'{u:.0%}' for u in client['cpu_util_per_worker']]}` of one core; "
                      f"send lag p99 {_ms(stats['send_lag_ms']['p99'])} ms. "
                      f"A worker near 100% or a growing send lag means the client, not the seller, was the limit.")
+    return "\n".join(lines) + "\n"
+
+
+def render_comparison(title: str, loaded: list[tuple[str, dict]]) -> str:
+    """One row per saved run: correctness first, then speed, then what the seller had to do."""
+    lines = [f"# {title}", "",
+             "| run | allocator | tickets | invariants | req/s | p50 ms | p99 ms | max ms | 503s | sold out at s "
+             "| seller counters | client lag p99 ms |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for name, r in loaded:
+        meta, st, checks = r["meta"], r["stats"], r["checks"]
+        failed = [c["id"] for c in checks if c["verdict"] == "FAIL"]
+        verdict = "all PASS" if not failed else "FAIL: " + ", ".join(failed)
+        counters = ", ".join(f"{k}={v}" for k, v in sorted((st.get("server_counters") or {}).items())) or "-"
+        lat = st["latency_ms"]
+        lines.append(f"| {name} | {meta.get('allocator')} | {meta.get('tickets')} | {verdict} | "
+                     f"{st['throughput_rps']} | {_ms(lat['p50'])} | {_ms(lat['p99'])} | {_ms(lat['max'])} | "
+                     f"{st['by_status'].get('503', 0)} | {st.get('first_sold_out_at_s')} | {counters} | "
+                     f"{_ms(st['send_lag_ms']['p99'])} |")
+    lines += ["", "Latency is measured from each request's scheduled send time (open-loop). "
+                  "'sold out at' = seconds from the start until the first sold-out answer, i.e. how long selling "
+                  "every ticket took. Seller counters come from GET /metrics, diffed across the run."]
     return "\n".join(lines) + "\n"
 
 

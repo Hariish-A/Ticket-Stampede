@@ -1,0 +1,591 @@
+{
+  "meta": {
+    "scenario": "c2-brief-counter",
+    "target": "http://seller1:8000",
+    "allocator": "counter",
+    "mode": "open-loop",
+    "processes": 4,
+    "tickets": 100,
+    "requests": 50000,
+    "burst": 1000,
+    "rate": 1000,
+    "seed": 1,
+    "started_utc": "2026-09-24T08:47:55+00:00",
+    "args": {
+      "command": "run",
+      "target": "http://seller1:8000",
+      "processes": 4,
+      "max_inflight": 2000,
+      "timeout": 10.0,
+      "out": "results",
+      "scenario": "c2-brief-counter",
+      "tickets": 100,
+      "requests": 50000,
+      "burst": 1000,
+      "rate": 1000,
+      "concurrency": null,
+      "dup_concurrent": 500,
+      "dup_sequential": 500,
+      "replay_after": 50,
+      "new_rid": 20,
+      "rid_conflict": 20,
+      "audit_interval": 0.1,
+      "seed": 1,
+      "no_reset": false,
+      "expect_allocator": "counter"
+    }
+  },
+  "stats": {
+    "requests_sent": 51000,
+    "responses": 51000,
+    "no_response": 0,
+    "window_s": 49.63,
+    "throughput_rps": 1027.6,
+    "latency_ms": {
+      "count": 51000,
+      "p50": 2.851306999900771,
+      "p90": 23.16718499992021,
+      "p99": 1430.4509869998583,
+      "max": 1702.3385189997953
+    },
+    "service_ms": {
+      "count": 51000,
+      "p50": 2.121392000162814,
+      "p90": 22.380100000191305,
+      "p99": 1415.1241730000947,
+      "max": 1698.5497549999309
+    },
+    "send_lag_ms": {
+      "count": 51000,
+      "p50": 0.679489000049216,
+      "p90": 1.0976650000884547,
+      "p99": 14.421384999877773,
+      "max": 121.50148099976832
+    },
+    "client": {
+      "processes": 4,
+      "cpu_util_per_worker": [
+        0.125,
+        0.125,
+        0.125,
+        0.125
+      ],
+      "cpu_util_max": 0.12512456521491214
+    },
+    "by_status": {
+      "200": 100,
+      "409": 49825,
+      "503": 1075
+    },
+    "by_kind": {
+      "dup_concurrent": 500,
+      "dup_sequential": 500,
+      "fresh": 50000
+    },
+    "errors": {},
+    "first_sold_out_at_s": 0.936,
+    "probes": 90,
+    "server_counters": {
+      "claims": 100,
+      "sold_out_checks": 49835
+    }
+  },
+  "checks": [
+    {
+      "id": "I1",
+      "name": "Never sell more tickets than exist",
+      "passed": true,
+      "detail": "100 confirmed, 100 in /status, total 100",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I2",
+      "name": "Never issue the same ticket number twice",
+      "passed": true,
+      "detail": "every ticket number has exactly one holder",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I3",
+      "name": "A repeated request_id gets one ticket, not two",
+      "passed": true,
+      "detail": "1050 duplicate/replayed requests, none produced a second ticket",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I4",
+      "name": "/status count matches the tickets actually issued",
+      "passed": true,
+      "detail": "sold=100 = 100 holders, every confirmed ticket present",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U1",
+      "name": "One ticket per user (product rule D3)",
+      "passed": true,
+      "detail": "no user holds two tickets",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U2",
+      "name": "A winner's request_id reused by another user is rejected (422)",
+      "passed": true,
+      "detail": "20 conflicting requests, all rejected",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U3",
+      "name": "Nobody is told 'sold out' while tickets remain",
+      "passed": true,
+      "detail": "49835 sold-out answers, 100/100 issued",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U4",
+      "name": "Every response belongs to this sale (no reset mid-run)",
+      "passed": true,
+      "detail": "all responses epoch 329",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U5",
+      "name": "A buyer who holds a ticket is never told 'sold out'",
+      "passed": true,
+      "detail": "64 repeat requests from holders, none told 'sold out'",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "A3",
+      "name": "Live audit: invariants held in every /status snapshot during the sale",
+      "passed": true,
+      "detail": "477 snapshots over 52.0s, 0 violations (1 polls got no answer)",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "A2",
+      "name": "Orphaned tickets (sold, but the buyer was never told)",
+      "passed": null,
+      "detail": "0 tickets in /status were never confirmed to their buyer",
+      "examples": [],
+      "verdict": "INFO"
+    }
+  ],
+  "status": {
+    "epoch": 329,
+    "total": 100,
+    "sold": 100,
+    "holders": [
+      {
+        "ticket_no": 1,
+        "user_id": "u000084"
+      },
+      {
+        "ticket_no": 2,
+        "user_id": "u000536"
+      },
+      {
+        "ticket_no": 3,
+        "user_id": "u000085"
+      },
+      {
+        "ticket_no": 4,
+        "user_id": "u000087"
+      },
+      {
+        "ticket_no": 5,
+        "user_id": "u000312"
+      },
+      {
+        "ticket_no": 6,
+        "user_id": "u000708"
+      },
+      {
+        "ticket_no": 7,
+        "user_id": "u000089"
+      },
+      {
+        "ticket_no": 8,
+        "user_id": "u000263"
+      },
+      {
+        "ticket_no": 9,
+        "user_id": "u000540"
+      },
+      {
+        "ticket_no": 10,
+        "user_id": "u000091"
+      },
+      {
+        "ticket_no": 11,
+        "user_id": "u000317"
+      },
+      {
+        "ticket_no": 12,
+        "user_id": "u000765"
+      },
+      {
+        "ticket_no": 13,
+        "user_id": "u000315"
+      },
+      {
+        "ticket_no": 14,
+        "user_id": "u000490"
+      },
+      {
+        "ticket_no": 15,
+        "user_id": "u001599"
+      },
+      {
+        "ticket_no": 16,
+        "user_id": "u000494"
+      },
+      {
+        "ticket_no": 17,
+        "user_id": "u000991"
+      },
+      {
+        "ticket_no": 18,
+        "user_id": "u000313"
+      },
+      {
+        "ticket_no": 19,
+        "user_id": "u000713"
+      },
+      {
+        "ticket_no": 20,
+        "user_id": "u000767"
+      },
+      {
+        "ticket_no": 21,
+        "user_id": "u000289"
+      },
+      {
+        "ticket_no": 22,
+        "user_id": "u000992"
+      },
+      {
+        "ticket_no": 23,
+        "user_id": "u000537"
+      },
+      {
+        "ticket_no": 24,
+        "user_id": "u000284"
+      },
+      {
+        "ticket_no": 25,
+        "user_id": "u000970"
+      },
+      {
+        "ticket_no": 26,
+        "user_id": "u000526"
+      },
+      {
+        "ticket_no": 27,
+        "user_id": "u000509"
+      },
+      {
+        "ticket_no": 28,
+        "user_id": "u001596"
+      },
+      {
+        "ticket_no": 29,
+        "user_id": "u000743"
+      },
+      {
+        "ticket_no": 30,
+        "user_id": "u000500"
+      },
+      {
+        "ticket_no": 31,
+        "user_id": "u000732"
+      },
+      {
+        "ticket_no": 32,
+        "user_id": "u000764"
+      },
+      {
+        "ticket_no": 33,
+        "user_id": "u000088"
+      },
+      {
+        "ticket_no": 34,
+        "user_id": "u000300"
+      },
+      {
+        "ticket_no": 35,
+        "user_id": "u000773"
+      },
+      {
+        "ticket_no": 36,
+        "user_id": "u000760"
+      },
+      {
+        "ticket_no": 37,
+        "user_id": "u000775"
+      },
+      {
+        "ticket_no": 38,
+        "user_id": "u000989"
+      },
+      {
+        "ticket_no": 39,
+        "user_id": "u000096"
+      },
+      {
+        "ticket_no": 40,
+        "user_id": "u000999"
+      },
+      {
+        "ticket_no": 41,
+        "user_id": "u000987"
+      },
+      {
+        "ticket_no": 42,
+        "user_id": "u001684"
+      },
+      {
+        "ticket_no": 43,
+        "user_id": "u000539"
+      },
+      {
+        "ticket_no": 44,
+        "user_id": "u001683"
+      },
+      {
+        "ticket_no": 45,
+        "user_id": "u000997"
+      },
+      {
+        "ticket_no": 46,
+        "user_id": "u001046"
+      },
+      {
+        "ticket_no": 47,
+        "user_id": "u001120"
+      },
+      {
+        "ticket_no": 48,
+        "user_id": "u000302"
+      },
+      {
+        "ticket_no": 49,
+        "user_id": "u000763"
+      },
+      {
+        "ticket_no": 50,
+        "user_id": "u000959"
+      },
+      {
+        "ticket_no": 51,
+        "user_id": "u001156"
+      },
+      {
+        "ticket_no": 52,
+        "user_id": "u001746"
+      },
+      {
+        "ticket_no": 53,
+        "user_id": "u001128"
+      },
+      {
+        "ticket_no": 54,
+        "user_id": "u001039"
+      },
+      {
+        "ticket_no": 55,
+        "user_id": "u000316"
+      },
+      {
+        "ticket_no": 56,
+        "user_id": "u000324"
+      },
+      {
+        "ticket_no": 57,
+        "user_id": "u001218"
+      },
+      {
+        "ticket_no": 58,
+        "user_id": "u000988"
+      },
+      {
+        "ticket_no": 59,
+        "user_id": "u001026"
+      },
+      {
+        "ticket_no": 60,
+        "user_id": "u001061"
+      },
+      {
+        "ticket_no": 61,
+        "user_id": "u001091"
+      },
+      {
+        "ticket_no": 62,
+        "user_id": "u000002"
+      },
+      {
+        "ticket_no": 63,
+        "user_id": "u001286"
+      },
+      {
+        "ticket_no": 64,
+        "user_id": "u000768"
+      },
+      {
+        "ticket_no": 65,
+        "user_id": "u001313"
+      },
+      {
+        "ticket_no": 66,
+        "user_id": "u001322"
+      },
+      {
+        "ticket_no": 67,
+        "user_id": "u001231"
+      },
+      {
+        "ticket_no": 68,
+        "user_id": "u001335"
+      },
+      {
+        "ticket_no": 69,
+        "user_id": "u001084"
+      },
+      {
+        "ticket_no": 70,
+        "user_id": "u001374"
+      },
+      {
+        "ticket_no": 71,
+        "user_id": "u000531"
+      },
+      {
+        "ticket_no": 72,
+        "user_id": "u001397"
+      },
+      {
+        "ticket_no": 73,
+        "user_id": "u001195"
+      },
+      {
+        "ticket_no": 74,
+        "user_id": "u001263"
+      },
+      {
+        "ticket_no": 75,
+        "user_id": "u001073"
+      },
+      {
+        "ticket_no": 76,
+        "user_id": "u001224"
+      },
+      {
+        "ticket_no": 77,
+        "user_id": "u000488"
+      },
+      {
+        "ticket_no": 78,
+        "user_id": "u001273"
+      },
+      {
+        "ticket_no": 79,
+        "user_id": "u001426"
+      },
+      {
+        "ticket_no": 80,
+        "user_id": "u001750"
+      },
+      {
+        "ticket_no": 81,
+        "user_id": "u001257"
+      },
+      {
+        "ticket_no": 82,
+        "user_id": "u001299"
+      },
+      {
+        "ticket_no": 83,
+        "user_id": "u001244"
+      },
+      {
+        "ticket_no": 84,
+        "user_id": "u001348"
+      },
+      {
+        "ticket_no": 85,
+        "user_id": "u001139"
+      },
+      {
+        "ticket_no": 86,
+        "user_id": "u001108"
+      },
+      {
+        "ticket_no": 87,
+        "user_id": "u001360"
+      },
+      {
+        "ticket_no": 88,
+        "user_id": "u001409"
+      },
+      {
+        "ticket_no": 89,
+        "user_id": "u001385"
+      },
+      {
+        "ticket_no": 90,
+        "user_id": "u001414"
+      },
+      {
+        "ticket_no": 91,
+        "user_id": "u001420"
+      },
+      {
+        "ticket_no": 92,
+        "user_id": "u001404"
+      },
+      {
+        "ticket_no": 93,
+        "user_id": "u001163"
+      },
+      {
+        "ticket_no": 94,
+        "user_id": "u001204"
+      },
+      {
+        "ticket_no": 95,
+        "user_id": "u000083"
+      },
+      {
+        "ticket_no": 96,
+        "user_id": "u001433"
+      },
+      {
+        "ticket_no": 97,
+        "user_id": "u000792"
+      },
+      {
+        "ticket_no": 98,
+        "user_id": "u001002"
+      },
+      {
+        "ticket_no": 99,
+        "user_id": "u001001"
+      },
+      {
+        "ticket_no": 100,
+        "user_id": "u001451"
+      }
+    ],
+    "allocator": "counter"
+  }
+}

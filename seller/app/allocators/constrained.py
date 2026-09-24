@@ -12,6 +12,8 @@ claim -- are what stop a double sale. Skipping BEGIN/COMMIT saves two round
 trips per request and keeps row locks held for exactly one statement.
 """
 
+from collections import Counter
+
 import asyncpg
 
 from ..sale import BuyResult, Purchased, RequestIdConflict, SoldOut
@@ -54,6 +56,11 @@ class ConstrainedAllocator:
     name = "abstract"
     max_attempts = 5
 
+    def __init__(self) -> None:
+        # Exposed on GET /metrics so a run can report what the strategy had to do
+        # (retries, fallbacks) and not just how fast it was. Per process.
+        self.counters: Counter = Counter()
+
     async def claim(self, conn: asyncpg.Connection, user_id: str, request_id: str) -> int | None:
         """Assign one unsold ticket to this buyer; None means definitively sold out."""
         raise NotImplementedError
@@ -67,17 +74,23 @@ class ConstrainedAllocator:
             try:
                 ticket_no = await self.claim(conn, user_id, request_id)
             except asyncpg.UniqueViolationError:
+                self.counters["unique_violation_retries"] += 1
                 continue  # a concurrent twin committed first; the lookup will now find it
             epoch = rows[0]["epoch"]
             if ticket_no is not None:
+                self.counters["claims"] += 1
                 return Purchased(ticket_no, epoch)
+            self.counters["sold_out_checks"] += 1
             # Before saying "sold out", look again: a twin of this very request
             # (or this user's other request) may have taken the last ticket while
             # our claim waited on its row lock. Found by
             # test_twins_racing_for_the_last_ticket_are_never_told_sold_out.
             # Costs one extra query on the sold-out path (measured in M4/M5).
             again = await conn.fetch(LOOKUP, request_id, user_id)
-            return resolve_existing(again, user_id, request_id) or SoldOut(epoch)
+            found = resolve_existing(again, user_id, request_id)
+            if found is not None:
+                self.counters["sold_out_relookup_hits"] += 1
+            return found or SoldOut(epoch)
         raise RetriesExhausted(f"request_id={request_id!r} user_id={user_id!r}")
 
     async def status(self, conn: asyncpg.Connection) -> dict:

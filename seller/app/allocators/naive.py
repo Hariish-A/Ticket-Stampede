@@ -10,6 +10,8 @@ What breaks, and which invariant catches it:
   * no request_id lookup, so a retried request buys again -> I3 idempotency
 """
 
+from collections import Counter
+
 import asyncpg
 
 from ..sale import BuyResult, Purchased, SoldOut
@@ -17,6 +19,9 @@ from ..sale import BuyResult, Purchased, SoldOut
 
 class NaiveAllocator:
     name = "naive"
+
+    def __init__(self) -> None:
+        self.counters: Counter = Counter()
 
     async def buy(self, conn: asyncpg.Connection, user_id: str, request_id: str) -> BuyResult:
         sale = await conn.fetchrow("SELECT epoch, total, sold FROM sale WHERE id = 1")

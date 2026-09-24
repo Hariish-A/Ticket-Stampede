@@ -4,15 +4,16 @@
 > Append new entries at the bottom of the log. Keep "Current state" and "Next up" current.
 
 ## Current state
-- **Phase:** M3 is done (a buyer we can trust at scale). M4 is next, when the user says "start M4".
+- **Phase:** M4 is done (allocation strategy chosen from evidence). M5 is next, when the user says "start M5".
 - **Runs?**
-  - `./scripts/test.sh`: 28 buyer unit tests + 11 seller integration tests, all passing.
-  - `./scripts/c1.sh`: 4 processes plus the live auditor. naive FAILs, including A3 (1,312 live violations); skiplocked PASSes, with A3 at 0 violations in 465 snapshots.
-  - `./scripts/calibrate.sh`: client ceiling 4.8k / 8.2k / 12.7k / 20.7k req/s with 1 / 2 / 4 / 8 processes.
+  - `./scripts/test.sh`: 28 buyer unit + 31 seller integration tests (10 race tests × 3 safe strategies + reset), all passing.
+  - `./scripts/c2.sh`: 3 strategies × 2 workloads, all correct; skiplocked is fastest (see the Session 4 M4 log).
+  - `c1.sh` and `calibrate.sh` are as before.
 - **Repo:** https://github.com/Hariish-A/Ticket-Stampede (private), branch `main`.
 
 ## Next up
-1. M4: `counter` and `serializable` allocators, `scripts/c2.sh` comparison, choose the default from the evidence.
+1. M5: Server-Timing header plus the buyer's breakdown of it, rate sweep, py-spy, pg wait sampling, find the knee and name the bottleneck with evidence. Check D10 (buyer inside the compose network vs on the host).
+   - Leads from M4: skiplocked's sold-out path costs 4 queries (every sold-out request takes the blocking fallback); counter's 250 claims/s suggests commit latency on a hot row. Test by comparing with `synchronous_commit=off`, as an experiment only.
 
 ## Known weaknesses / open issues
 _(These feed into the "where it breaks" section of DECISIONS.md.)_
@@ -27,7 +28,10 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - (M1) **A pool-acquire timeout answers 503 "unknown", but the outcome is actually known**: the request never reached the database, so nothing happened. M6 should separate "not attempted, safe to retry" from "unknown outcome".
 - (M2) **The safe seller also saturates at the opening burst.** In the C1 skiplocked run, 1,479 of 51k requests got 503 (all `TimeoutError`: waiting more than 1 s for one of 20 pool connections). p99 was 1.5 s and max 2.4 s. No invariant was affected, because those requests never reached the database. M5 will find the bottleneck; candidates are single-process Python CPU, pool size, and the sold-out path's 4 queries (lookup, skip claim, blocking claim, re-lookup).
 - (M2) **/reset during live traffic isn't safe for the epoch.** A buy whose statement snapshot predates a concurrent TRUNCATE can see an empty `tickets` table and answer a spurious "sold out" for the new epoch. U4 and U3 would flag it. Resetting mid-sale is outside the brief; not handled.
-- (M1, to investigate in M4/M5) **The naive seller handles only about 200–400 buys/s**. There were 6–8k 503s per run, and p90 latency was about 1 s, which matches the 1 s acquire timeout. Hypothesis: every buy does `UPDATE sale` on the single row, and each of those commits waits for a WAL fsync while holding the row lock. So buys queue behind fsync latency (the "hot row" problem). The C2 `counter` strategy would have the same problem. Unverified until measured.
+- (M4) **skiplocked's sold-out path does 4 queries**: lookup, SKIP LOCKED claim (empty), blocking claim (empty), re-lookup. In the brief run, all 50,079 sold-out requests took the blocking fallback, because after sell-out the fast path always finds nothing. 99.8% of traffic takes this path, so it's the first optimisation target in M5 (a cheaper definitive sold-out test, or the M9 cache).
+- (M4) **Under sustained contention, counter and serializable turn into mass 503s.** Large sale: 16,260 (counter) and 19,533 (serializable) of 21k requests got "unknown", and neither sold out by the end of the run. Correct, but unusable.
+- (M1 → supported by M4) **The naive seller handles only about 200–400 buys/s**. The counter strategy (the same single-row design, done safely) measured about 250 claims/s, which supports the hot-row hypothesis. Whether commit/fsync latency is the cause is still unproven (M5).
+- (M1, original note) There were 6–8k 503s per run, and p90 latency was about 1 s, which matches the 1 s acquire timeout. Hypothesis: every buy does `UPDATE sale` on the single row, and each of those commits waits for a WAL fsync while holding the row lock. So buys queue behind fsync latency (the "hot row" problem). The C2 `counter` strategy would have the same problem. Unverified until measured.
 
 ## Open questions for the user
 - None.
@@ -165,3 +169,15 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - The heredoc-based Python edits turned `"
 "` into literal newlines twice. Fixed with the Edit tool; use Edit for such changes.
 - Results: `results/*-calibrate`, `results/*-calibrate-container-cpu.txt`, `results/*c1-{naive,skiplocked}` (M3 runs).
+
+### 2026-09-24 — Session 4 (continued): M4, choosing the allocation strategy from evidence (C2)
+- Built:
+  - `CounterAllocator`: a single data-modifying CTE that increments `sale.sold` and fills that ticket, so both commit or roll back together.
+  - `SerializableAllocator`: a SERIALIZABLE read-lowest-then-write transaction, retrying up to 50 times on 40001/deadlock, then 503.
+  - Per-allocator counters on `GET /metrics`, which the buyer diffs across each run.
+  - `buyer compare` (side-by-side table of saved reports); `scripts/c2.sh`.
+  - All 10 race integration tests are parametrised over the 3 safe strategies (31 pass).
+- Results (`results/*c2-summary.md`): see D19 in Plan.md. All 6 runs pass every check.
+  - Brief workload: modest gap (sold out 0.66 / 0.94 / 1.79 s).
+  - Large sale: decisive. skiplocked sold 5,000 in 5.4 s; counter was capped at about 250 claims/s; serializable sold 1,472 with 24,927 retries.
+- Honest framing for DECISIONS.md: the Session 3 recommendation of SKIP LOCKED was a guess. The measurement confirms it under contention, but shows it barely matters at 100 tickets. The measurement also found a cost nobody predicted: skiplocked's sold-out path does 4 queries.
