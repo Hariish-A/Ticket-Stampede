@@ -30,6 +30,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     r.add_argument("--seed", type=int, default=1)
     r.add_argument("--out", default="results")
     r.add_argument("--no-reset", action="store_true", help="do not POST /reset before the run")
+    r.add_argument("--expect-allocator", help="refuse to run unless the seller reports this allocator "
+                                              "(guards against attacking the wrong seller)")
     return p.parse_args(argv)
 
 
@@ -54,18 +56,29 @@ async def _get_status(target: str) -> dict:
 async def run(args: argparse.Namespace) -> int:
     started = datetime.now(timezone.utc)
     reset = None if args.no_reset else await _post_reset(args.target, args.tickets)
+    if args.expect_allocator:
+        actual = (reset or await _get_status(args.target)).get("allocator")
+        if actual != args.expect_allocator:
+            raise SystemExit(f"seller runs allocator {actual!r}, expected {args.expect_allocator!r}; refusing to run")
 
-    plan = schedule.build(schedule.ScheduleSpec(
+    spec = schedule.ScheduleSpec(
         requests=args.requests, rate=args.rate, burst=args.burst, tickets=args.tickets,
         dup_concurrent=args.dup_concurrent, dup_sequential=args.dup_sequential,
         replay_after=args.replay_after, new_rid=args.new_rid, rid_conflict=args.rid_conflict, seed=args.seed,
-    ))
-    print(f"[buyer] firing {len(plan)} requests at {args.target} ...", file=sys.stderr)
-    attempts, t0 = await runner.run_open_loop(args.target, plan, timeout=args.timeout)
+    )
+    plan = schedule.build(spec)
+    print(f"[buyer] phase 1: firing {len(plan)} requests at {args.target} ...", file=sys.stderr)
+    stampede, t0 = await runner.run_open_loop(args.target, plan, timeout=args.timeout)
+
+    probes_plan = schedule.build_probes(spec, stampede)
+    print(f"[buyer] phase 2: {len(probes_plan)} probes aimed at actual winners/losers ...", file=sys.stderr)
+    probes, _ = await runner.run_open_loop(args.target, probes_plan, timeout=args.timeout)
+    attempts = stampede + probes
 
     status = await _get_status(args.target)
     checks = verify.verify(status, attempts, total=args.tickets)
-    summary = stats.summarize(attempts, t0)
+    summary = stats.summarize(stampede, t0)  # load numbers: the stampede only
+    summary["probes"] = len(probes)
 
     meta = {
         "scenario": args.scenario,

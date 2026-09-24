@@ -4,13 +4,14 @@
 > Append new entries at the bottom of the log. Keep "Current state" and "Next up" current.
 
 ## Current state
-- **Phase:** M1 is done (the naive seller gets caught). M2 is next, when the user says "start M2".
-- **Runs?** Yes: `./scripts/test.sh` (17 unit tests pass) and `./scripts/naive.sh` (the naive seller FAILs I1–I4 in 3 out of 3 runs at 50k requests).
-- **Tests:** 17 pytest unit tests (verifier + schedule), run inside the buyer image.
+- **Phase:** M2 is done (the safe seller passes; **the core brief is complete**). M3 is next, when the user says "start M3".
+- **Runs?**
+  - `./scripts/test.sh`: 22 buyer unit tests + 11 seller integration tests, all passing.
+  - `./scripts/c1.sh`: naive FAILs I1–I4, U1, U2 and U5; skiplocked PASSes all 9 checks on the same 51k-request stampede.
 - **Repo:** https://github.com/Hariish-A/Ticket-Stampede (private), branch `main`.
 
 ## Next up
-1. M2: the `skiplocked` allocator, idempotency lookup, D7, 422, the confirm-before-409 check, a single-snapshot /status, seller integration tests, `scripts/c1.sh`.
+1. M3: buyer across multiple processes, live auditor (A3), client-health section, closed-loop mode, nginx `/calibrate`, `scripts/calibrate.sh`.
 
 ## Known weaknesses / open issues
 _(These feed into the "where it breaks" section of DECISIONS.md.)_
@@ -20,6 +21,8 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - A single Postgres node is a single point of failure; asynchronous replication would make failover lose confirmed sales.
 - (M1) **Single-process buyer lags during the opening burst**: its send lag reaches p99 71–98 ms and max 240–310 ms when 1,000 requests are scheduled at t=0. The client-health metric shows this. M3 (multiprocess plus calibration) needs to fix and quantify it.
 - (M1) **A pool-acquire timeout answers 503 "unknown", but the outcome is actually known**: the request never reached the database, so nothing happened. M6 should separate "not attempted, safe to retry" from "unknown outcome".
+- (M2) **The safe seller also saturates at the opening burst.** In the C1 skiplocked run, 1,479 of 51k requests got 503 (all `TimeoutError`: waiting more than 1 s for one of 20 pool connections). p99 was 1.5 s and max 2.4 s. No invariant was affected, because those requests never reached the database. M5 will find the bottleneck; candidates are single-process Python CPU, pool size, and the sold-out path's 4 queries (lookup, skip claim, blocking claim, re-lookup).
+- (M2) **/reset during live traffic isn't safe for the epoch.** A buy whose statement snapshot predates a concurrent TRUNCATE can see an empty `tickets` table and answer a spurious "sold out" for the new epoch. U4 and U3 would flag it. Resetting mid-sale is outside the brief; not handled.
 - (M1, to investigate in M4/M5) **The naive seller handles only about 200–400 buys/s**. There were 6–8k 503s per run, and p90 latency was about 1 s, which matches the 1 s acquire timeout. Hypothesis: every buy does `UPDATE sale` on the single row, and each of those commits waits for a WAL fsync while holding the row lock. So buys queue behind fsync latency (the "hot row" problem). The C2 `counter` strategy would have the same problem. Unverified until measured.
 
 ## Open questions for the user
@@ -126,3 +129,19 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - seller1 is back on host port 8001 (the `SELLER1_PORT` override is kept). Checked with curl: reset, buy and status all work.
 - Added `.gitattributes` (LF line endings) and exec bits on the scripts, so a Windows clean checkout doesn't break the bash scripts. A fresh clone passed `scripts/test.sh`.
 - Added the remote https://github.com/Hariish-A/Ticket-Stampede and pushed `main`.
+
+### 2026-09-24 — Session 4 (continued): M2, the safe seller passes
+- Built:
+  - `tickets` table: N rows per sale; PK on ticket_no; UNIQUE on request_id and on user_id; CHECKs; a partial index on unsold rows.
+  - `ConstrainedAllocator`: lookup → claim → on UniqueViolation look up again (D13); `resolve_existing` handles replay, 422, and D7 existing.
+  - `SkipLockedAllocator`: SKIP LOCKED claim, then a blocking claim, then a re-lookup before 409 (D14).
+  - `/status` as a single statement, so the count and the list come from one snapshot.
+  - Seller integration tests (test stage in the seller Dockerfile, `seller-tests` compose service); `scripts/c1.sh`.
+  - Default ALLOCATOR is now `skiplocked`.
+- **Mistakes caught in this session, including the AI's own (useful for DECISIONS.md and the logs):**
+  1. **c1.sh attacked the wrong seller.** The first C1 run reported naive PASS. The report's `allocator` field showed both runs were served by skiplocked. Cause: `docker compose run buyer` also starts the buyer's dependencies, re-read the compose file with ALLOCATOR unset, and silently recreated seller1 on the new default. (M1's naive.sh only worked because naive was the default then.) Fix: `--no-deps`, plus a buyer `--expect-allocator` guard that refuses to run against the wrong seller.
+  2. **The probe design was wrong.** Replays and conflicts targeted the earliest 300 request_ids, on the assumption they'd be winners. With a 1,000-request burst at t=0, winning is effectively random, and 0 of 20 conflict probes hit a winner, so U2 "failed" against a correct seller. Fix: phase-2 probes built from actual phase-1 outcomes (D15). U2 now only counts conflicts on request_ids bound to a ticket.
+  3. **A U2 verifier bug the AI wrote while fixing (2)** (the bound-map included the conflicting user's own confirmations) was caught immediately by the existing planted-defect test.
+  4. **A real seller race found by designing U5** ("a ticket holder is never told sold out"). Twins racing for the last ticket: the loser's blocking claim waits on its twin's row and then answers 409. Reproduced first by a test (1/30 twins told "sold out"), then fixed with a re-lookup before 409. The race-sensitive tests passed 5 out of 5 reruns (100 iterations).
+- Mutation check: removing the SKIP LOCKED fallback makes 2 integration tests fail, so they test what they claim.
+- Results: `results/*c1-naive`, `results/*c1-skiplocked`.

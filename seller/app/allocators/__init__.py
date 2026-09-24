@@ -1,7 +1,9 @@
 from .naive import NaiveAllocator
+from .skiplocked import SkipLockedAllocator
 
 ALLOCATORS = {
     NaiveAllocator.name: NaiveAllocator,
+    SkipLockedAllocator.name: SkipLockedAllocator,
 }
 
 

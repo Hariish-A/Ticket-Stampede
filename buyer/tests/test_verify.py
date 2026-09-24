@@ -38,7 +38,7 @@ def verdicts(status, attempts):
 def test_clean_run_passes_everything():
     status, attempts = clean()
     v = verdicts(status, attempts)
-    assert all(v[k] for k in ("I1", "I2", "I3", "I4", "U1", "U2", "U3", "U4"))
+    assert all(v[k] for k in ("I1", "I2", "I3", "I4", "U1", "U2", "U3", "U4", "U5"))
     assert all_core_pass(verify(status, attempts, TOTAL))
 
 
@@ -114,3 +114,24 @@ def test_response_from_another_epoch_fails_u4():
     status, attempts = clean()
     attempts.append(Attempt(kind=FRESH, user_id="z", request_id="rz", sched=0, sent=0, done=0.01, status=409, epoch=7))
     assert verdicts(status, attempts)["U4"] is False
+
+
+def test_conflict_on_unbound_request_id_is_not_counted():
+    # r9 only ever got "sold out", so it is bound to nobody; 409 for another user is right.
+    status, attempts = clean()
+    attempts += [sold_out("z", "r9"), sold_out("xz", "r9", kind=RID_CONFLICT)]
+    checks = {c.id: c for c in verify(status, attempts, TOTAL)}
+    assert checks["U2"].passed is True
+    assert checks["U2"].detail.startswith("1 conflicting")
+
+
+def test_holder_told_sold_out_fails_u5():
+    status, attempts = clean()
+    attempts.append(sold_out("a", "ra", kind=REPLAY_AFTER))  # a holds ticket 1
+    assert verdicts(status, attempts)["U5"] is False
+
+
+def test_holder_new_request_id_told_sold_out_fails_u5():
+    status, attempts = clean()
+    attempts.append(sold_out("b", "rb-b", kind=NEW_RID))
+    assert verdicts(status, attempts)["U5"] is False

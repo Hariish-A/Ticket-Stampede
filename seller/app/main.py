@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from . import allocators, config, db, sale
+from .allocators.constrained import RetriesExhausted
 from .sale import Purchased, RequestIdConflict, SoldOut
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -16,7 +17,7 @@ log = logging.getLogger("seller")
 settings = config.load()
 
 # Anything that means "the datastore did not give us a definite answer".
-DB_ERRORS = (asyncpg.PostgresError, asyncpg.InterfaceError, OSError, asyncio.TimeoutError)
+DB_ERRORS = (asyncpg.PostgresError, asyncpg.InterfaceError, OSError, asyncio.TimeoutError, RetriesExhausted)
 
 
 @asynccontextmanager

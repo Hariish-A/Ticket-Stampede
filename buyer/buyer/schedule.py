@@ -1,27 +1,33 @@
-"""Builds the list of requests to fire and *when* to fire each one.
+"""Builds the requests to fire and *when* to fire each one.
 
-The buyer is open-loop: every request has a scheduled send time fixed in
-advance, independent of how fast the seller answers. Latency is measured from
-that scheduled time, so a stalled seller cannot quietly slow the client down
-and hide its own stall (coordinated omission).
+Phase 1 -- the stampede -- is open-loop: every request has a send time fixed
+in advance, independent of how fast the seller answers. Latency is measured
+from that scheduled time, so a stalled seller cannot quietly slow the client
+down and hide its own stall (coordinated omission).
+
+Phase 2 -- the probes -- is built *after* phase 1 from what actually
+happened: replays and conflicts must target real winners. (An earlier version
+guessed that the earliest requests would win; with a 1,000-request burst at
+t=0 that guess was wrong and the probes silently tested nothing.)
 """
 
 import random
 from dataclasses import dataclass, replace
+from typing import Iterable
 
 FRESH = "fresh"
 DUP_CONCURRENT = "dup_concurrent"  # same (user, request_id), same instant as the original
 DUP_SEQUENTIAL = "dup_sequential"  # same (user, request_id), shortly after the original
 REPLAY_AFTER = "replay_after_sellout"  # same (user, request_id), after the sale has ended
-NEW_RID = "same_user_new_rid"  # same user, different request_id (one ticket per user)
-RID_CONFLICT = "rid_conflict"  # same request_id, different user (must be rejected)
+NEW_RID = "same_user_new_rid"  # a winner retrying with a new request_id (D7: gets their ticket)
+RID_CONFLICT = "rid_conflict"  # a winner's request_id sent by a different user (must be 422)
 
 KINDS = (FRESH, DUP_CONCURRENT, DUP_SEQUENTIAL, REPLAY_AFTER, NEW_RID, RID_CONFLICT)
 
 
 @dataclass(frozen=True, slots=True)
 class Planned:
-    t: float  # seconds after the run starts
+    t: float  # seconds after the phase starts
     user_id: str
     request_id: str
     kind: str
@@ -42,8 +48,8 @@ class ScheduleSpec:
 
 
 def build(spec: ScheduleSpec) -> list[Planned]:
+    """Phase 1: the stampede, with duplicates mixed in."""
     rng = random.Random(spec.seed)
-
     fresh = [
         Planned(
             t=0.0 if i < spec.burst else (i - spec.burst + 1) / spec.rate,
@@ -53,21 +59,36 @@ def build(spec: ScheduleSpec) -> list[Planned]:
         )
         for i in range(spec.requests)
     ]
-    if not fresh:
-        return []
-    end = fresh[-1].t + 0.5
-
-    # Replays that should hit *winners* are drawn from the earliest requests,
-    # which are the ones most likely to have bought a ticket.
-    early = fresh[: min(len(fresh), max(spec.tickets * 3, 1))]
-
-    def pick(pool: list[Planned], k: int) -> list[Planned]:
-        return rng.sample(pool, min(k, len(pool)))
-
-    extra = [replace(p, kind=DUP_CONCURRENT) for p in pick(fresh, spec.dup_concurrent)]
-    extra += [replace(p, t=p.t + rng.uniform(0.05, 1.0), kind=DUP_SEQUENTIAL) for p in pick(fresh, spec.dup_sequential)]
-    extra += [replace(p, t=end, kind=REPLAY_AFTER) for p in pick(early, spec.replay_after)]
-    extra += [Planned(end, p.user_id, p.request_id + "-b", NEW_RID) for p in pick(early, spec.new_rid)]
-    extra += [Planned(end, "x" + p.user_id, p.request_id, RID_CONFLICT) for p in pick(early, spec.rid_conflict)]
-
+    extra = [replace(p, kind=DUP_CONCURRENT) for p in _pick(rng, fresh, spec.dup_concurrent)]
+    extra += [replace(p, t=p.t + rng.uniform(0.05, 1.0), kind=DUP_SEQUENTIAL)
+              for p in _pick(rng, fresh, spec.dup_sequential)]
     return sorted(fresh + extra, key=lambda p: p.t)
+
+
+def build_probes(spec: ScheduleSpec, outcomes: Iterable) -> list[Planned]:
+    """Phase 2, fired all at once after the stampede, aimed using phase 1's outcomes.
+
+    `outcomes` are phase-1 attempts (anything with kind/user_id/request_id/confirmed).
+    Replays go mostly to winners (who must get their ticket back, not "sold out")
+    and partly to losers (who must still be sold out).
+    """
+    rng = random.Random(spec.seed + 1)
+    winners, losers, seen = [], [], set()
+    for a in outcomes:
+        if a.kind != FRESH or a.request_id in seen:
+            continue
+        seen.add(a.request_id)
+        (winners if a.confirmed else losers).append(Planned(0.0, a.user_id, a.request_id, FRESH))
+    winners.sort(key=lambda p: p.request_id)
+    losers.sort(key=lambda p: p.request_id)
+
+    n_win = min(len(winners), -(-spec.replay_after * 4 // 5))  # ~80% of replays to winners
+    probes = [replace(p, kind=REPLAY_AFTER) for p in _pick(rng, winners, n_win)]
+    probes += [replace(p, kind=REPLAY_AFTER) for p in _pick(rng, losers, spec.replay_after - n_win)]
+    probes += [Planned(0.0, p.user_id, p.request_id + "-b", NEW_RID) for p in _pick(rng, winners, spec.new_rid)]
+    probes += [Planned(0.0, "x" + p.user_id, p.request_id, RID_CONFLICT) for p in _pick(rng, winners, spec.rid_conflict)]
+    return probes
+
+
+def _pick(rng: random.Random, pool: list[Planned], k: int) -> list[Planned]:
+    return rng.sample(pool, min(max(k, 0), len(pool)))

@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Iterable
 
 from .runner import Attempt
-from .schedule import DUP_CONCURRENT, DUP_SEQUENTIAL, REPLAY_AFTER, RID_CONFLICT
+from .schedule import DUP_CONCURRENT, DUP_SEQUENTIAL, FRESH, REPLAY_AFTER, RID_CONFLICT
 
 EXAMPLES = 5
 REPEATS = (DUP_CONCURRENT, DUP_SEQUENTIAL, REPLAY_AFTER)
@@ -108,9 +108,14 @@ def verify(status: dict, attempts: Iterable[Attempt], total: int) -> list[Check]
                         f"{len(greedy)} users hold more than one ticket" if greedy else "no user holds two tickets",
                         [{"user_id": u, "tickets": t} for u, t in list(greedy.items())[:EXAMPLES]]))
 
-    conflicts = [a for a in attempts if a.kind == RID_CONFLICT]
+    # A request_id is "bound" once it has been confirmed a ticket. Reusing a bound
+    # id as another user must be refused; an id that only ever got "sold out"
+    # holds nothing, so there is nothing to conflict with.
+    bound = {a.request_id: a.user_id for a in confirmed if a.kind != RID_CONFLICT}
+    conflicts = [a for a in attempts if a.kind == RID_CONFLICT and bound.get(a.request_id, a.user_id) != a.user_id]
     leaked = [a for a in conflicts if a.status != 422]
-    checks.append(Check("U2", "request_id reused by another user is rejected (422)", not leaked if conflicts else None,
+    checks.append(Check("U2", "A winner's request_id reused by another user is rejected (422)",
+                        not leaked if conflicts else None,
                         f"{len(leaked)}/{len(conflicts)} conflicting requests were not rejected" if leaked
                         else f"{len(conflicts)} conflicting requests, all rejected",
                         [{"request_id": a.request_id, "user_id": a.user_id, "status": a.status, "ticket_no": a.ticket_no}
@@ -126,6 +131,17 @@ def verify(status: dict, attempts: Iterable[Attempt], total: int) -> list[Check]
     stale = epochs - {status.get("epoch")}
     checks.append(Check("U4", "Every response belongs to this sale (no reset mid-run)", not stale,
                         f"responses from other epochs: {sorted(stale)}" if stale else f"all responses epoch {status.get('epoch')}"))
+
+    # A buyer who holds a ticket -- by this request_id, or as this user (D7) --
+    # must get it back, never "sold out". Includes a twin that loses the race
+    # for the very last ticket to its own duplicate.
+    holds = {a.user_id for a in confirmed}
+    denied = [a for a in attempts if a.status == 409 and a.user_id in holds]
+    checks.append(Check("U5", "A buyer who holds a ticket is never told 'sold out'", not denied,
+                        f"{len(denied)} requests from ticket holders were answered 'sold out'" if denied
+                        else f"{sum(1 for a in attempts if a.user_id in holds and a.kind != FRESH)} repeat requests "
+                             f"from holders, none told 'sold out'",
+                        [{"user_id": a.user_id, "request_id": a.request_id, "kind": a.kind} for a in denied[:EXAMPLES]]))
 
     orphans = sorted(status_pairs - pairs)
     checks.append(Check("A2", "Orphaned tickets (sold, but the buyer was never told)", None,

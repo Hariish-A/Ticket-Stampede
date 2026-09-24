@@ -1,10 +1,12 @@
 name: ticket-stampede
 
 x-seller: &seller
-  build: ./seller
+  build:
+    context: ./seller
+    target: runtime
   environment:
     DATABASE_URL: postgresql://tickets:tickets@postgres:5432/tickets
-    ALLOCATOR: ${ALLOCATOR:-naive}
+    ALLOCATOR: ${ALLOCATOR:-skiplocked}
     POOL_MIN: ${POOL_MIN:-5}
     POOL_MAX: ${POOL_MAX:-20}
     POOL_ACQUIRE_TIMEOUT: ${POOL_ACQUIRE_TIMEOUT:-1.0}
@@ -36,6 +38,18 @@ services:
     <<: *seller
     ports:
       - "${SELLER1_PORT:-8001}:8000"  # host port only for manual curl; the buyer uses the compose network
+
+  # Allocator integration tests against the real Postgres.
+  seller-tests:
+    build:
+      context: ./seller
+      target: test
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: postgresql://tickets:tickets@postgres:5432/tickets
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # The load client. Not started by `docker compose up`; run it with
   # `docker compose run --rm buyer run ...`. It lives on the compose network so

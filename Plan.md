@@ -212,6 +212,9 @@ naive_sales(ticket_no int, user_id text, request_id text)       -- NO constraint
 | D10 | The buyer runs inside the compose network by default | Docker Desktop's host port-forwarding may be a bottleneck; to be verified in M5 | AI (proposed; user did not object) | 2026-09-24 |
 | D11 | One uvicorn worker per container; scale by adding instances | Makes 1-instance vs 3-instance runs simpler to reason about; the naive version still races because it awaits the database between read and write | AI (proposed) | 2026-09-24 |
 | D12 | The opening of the sale is modelled as a **burst** (default: 1,000 requests at t=0), then a fixed rate | "50k in 60 s" averages about 830/s, but real on-sales spike at the opening, and the race window is only the first ~100 sales. A purely uniform arrival would barely exercise it. | AI (M1) | 2026-09-24 |
+| D13 | The safe `/buy` uses **no explicit transaction**: a lookup, then a claim that is one atomic `UPDATE`, then (on a UniqueViolation) the lookup again | The constraints stop double sales, not a lock held across statements. Dropping BEGIN/COMMIT saves 2 round trips, and row locks are held for exactly one statement. | AI (M2) | 2026-09-24 |
+| D14 | SKIP LOCKED claim → blocking claim → **look up again** before answering 409 | Without the fallback, a buyer is told "sold out" while the last ticket is mid-claim and about to roll back. Without the re-lookup, a twin that loses the last ticket to its own duplicate is told "sold out". Both were reproduced by tests. The cost is extra queries on the sold-out path (to be measured in M4/M5). | AI (M2) | 2026-09-24 |
+| D15 | Buyer probes (post-sale replays, new request_ids, conflicts) are a **second phase built from the ledger** of phase 1 | The first version guessed that the earliest requests would win. With a burst at t=0 that's false, so the probes silently tested losers only. | AI (M2) | 2026-09-24 |
 
 ## 5. Testing and verification strategy
 | Layer | What | What it proves |
@@ -248,7 +251,7 @@ Rules:
 - The naive run fails reproducibly (3 runs out of 3).
 - The verifier unit tests pass, including a FAIL case for each kind of violation.
 
-### M2: The safe seller passes (core brief complete) · ~2.0 h
+### M2: The safe seller passes (core brief complete) · ~2.0 h · ✅ DONE 2026-09-24
 **Build**
 - The `skiplocked` strategy.
 - The existing-sale lookup: replay, D7, and 422.
@@ -398,4 +401,5 @@ The plan runs about 1 hour over the 15-hour budget. If we need to cut, M9 goes f
 
 
 ## 7. Decision changes (history)
+- 2026-09-24 (M2): the post-sale probes were changed from "pre-scheduled against the earliest requests" to "built from actual phase-1 outcomes" (D15). A C1 run showed that 0 of 20 probes had hit a winner.
 - 2026-09-24: the milestones were changed from a list of technical tasks to vertical slices, each ending in something that runs (D9, at the user's request).

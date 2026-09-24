@@ -34,7 +34,8 @@ async def reset(conn: asyncpg.Connection, count: int) -> int:
     lands wholly in the old sale or wholly in the new one.
     """
     async with conn.transaction():
-        await conn.execute("TRUNCATE naive_sales")
+        await conn.execute("TRUNCATE naive_sales, tickets")
+        await conn.execute("INSERT INTO tickets (ticket_no) SELECT generate_series(1, $1)", count)
         return await conn.fetchval(
             "UPDATE sale SET epoch = epoch + 1, total = $1, sold = 0 WHERE id = 1 RETURNING epoch",
             count,

@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
-# Unit tests (verifier + schedule), run inside the buyer image so no local Python setup is needed.
+# All automated tests, inside containers (no local Python setup needed):
+#   1. buyer unit tests  -- the verifier catches every planted violation
+#   2. seller integration tests -- each race against the real Postgres
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export MSYS_NO_PATHCONV=1
-docker compose build buyer >/dev/null
-docker compose run --rm --no-deps --entrypoint python buyer -m pytest -q tests "$@"
+
+echo "== buyer unit tests"
+docker compose build -q buyer
+docker compose run --rm --no-deps --entrypoint python buyer -m pytest -q tests
+
+echo "== seller integration tests (against Postgres)"
+docker compose build -q seller-tests
+docker compose up -d --wait postgres
+docker compose run --rm seller-tests

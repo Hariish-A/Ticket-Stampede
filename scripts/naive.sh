@@ -9,7 +9,7 @@ ALLOCATOR=naive docker compose up -d --build --wait seller1
 docker compose build buyer >/dev/null
 
 set +e
-docker compose run --rm buyer run --target http://seller1:8000 --scenario naive "$@"
+docker compose run --rm --no-deps buyer run --target http://seller1:8000 --expect-allocator naive --scenario naive "$@"
 code=$?
 set -e
 

@@ -26,8 +26,8 @@ def render_markdown(meta: dict, stats: dict, checks: list[Check]) -> str:
 
     lines += ["", "## Throughput and latency", ""]
     lines.append(
-        f"{stats['responses']} responses in {stats['window_s']} s → **{stats['throughput_rps']} req/s** handled; "
-        f"{stats['no_response']} without a response."
+        f"Stampede: {stats['responses']} responses in {stats['window_s']} s → **{stats['throughput_rps']} req/s** handled; "
+        f"{stats['no_response']} without a response. Then {stats.get('probes', 0)} post-sale probes (verified, not timed)."
     )
     lines += ["", "| ms | p50 | p90 | p99 | max |", "|---|---|---|---|---|"]
     for key, label in (
