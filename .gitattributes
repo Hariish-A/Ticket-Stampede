@@ -1,0 +1,4 @@
+# Scripts, Dockerfiles and SQL run inside Linux containers or bash: a CRLF checkout
+# on Windows (core.autocrlf=true) would break them. Force LF everywhere.
+* text=auto eol=lf
+*.jsonl -text

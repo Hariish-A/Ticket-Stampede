@@ -1,0 +1,54 @@
+name: ticket-stampede
+
+x-seller: &seller
+  build: ./seller
+  environment:
+    DATABASE_URL: postgresql://tickets:tickets@postgres:5432/tickets
+    ALLOCATOR: ${ALLOCATOR:-naive}
+    POOL_MIN: ${POOL_MIN:-5}
+    POOL_MAX: ${POOL_MAX:-20}
+    POOL_ACQUIRE_TIMEOUT: ${POOL_ACQUIRE_TIMEOUT:-1.0}
+    COMMAND_TIMEOUT: ${COMMAND_TIMEOUT:-2.0}
+  depends_on:
+    postgres:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tickets
+      POSTGRES_PASSWORD: tickets
+      POSTGRES_DB: tickets
+    # fsync and synchronous_commit are the defaults; stated explicitly because
+    # "a confirmed sale survives a crash" (TF2) depends on them.
+    command: ["postgres", "-c", "max_connections=200", "-c", "fsync=on", "-c", "synchronous_commit=on"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tickets -d tickets"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+
+  seller1:
+    <<: *seller
+    ports:
+      - "${SELLER1_PORT:-18001}:8000"  # host port only for manual curl; the buyer uses the compose network
+
+  # The load client. Not started by `docker compose up`; run it with
+  # `docker compose run --rm buyer run ...`. It lives on the compose network so
+  # Docker Desktop's host port-forwarding is not in the measured path (Plan.md D10).
+  buyer:
+    build: ./buyer
+    profiles: ["tools"]
+    working_dir: /app
+    volumes:
+      - ./results:/app/results
+    depends_on:
+      seller1:
+        condition: service_healthy
+
+volumes:
+  pgdata:
