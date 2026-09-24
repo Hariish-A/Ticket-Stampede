@@ -4,16 +4,16 @@
 > Append new entries at the bottom of the log. Keep "Current state" and "Next up" current.
 
 ## Current state
-- **Phase:** M4 is done (allocation strategy chosen from evidence). M5 is next, when the user says "start M5".
+- **Phase:** M5 is done (load limit and bottleneck, with evidence: `results/M5-bottleneck.md`). M6 is next, when the user says "start M6".
 - **Runs?**
-  - `./scripts/test.sh`: 28 buyer unit + 31 seller integration tests (10 race tests × 3 safe strategies + reset), all passing.
-  - `./scripts/c2.sh`: 3 strategies × 2 workloads, all correct; skiplocked is fastest (see the Session 4 M4 log).
-  - `c1.sh` and `calibrate.sh` are as before.
+  - `./scripts/test.sh`: 28 buyer unit + 34 seller integration tests, all passing.
+  - New scripts: `sweep.sh`, `profile.sh`, `hotrow.sh`, `d10.sh`.
+- **Headline:** one seller instance has its knee at ~1,500 req/s and a ceiling of ~1,400–1,500 req/s. The bottleneck is the seller process's one CPU core; Postgres is mostly idle.
 - **Repo:** https://github.com/Hariish-A/Ticket-Stampede (private), branch `main`.
 
 ## Next up
-1. M5: Server-Timing header plus the buyer's breakdown of it, rate sweep, py-spy, pg wait sampling, find the knee and name the bottleneck with evidence. Check D10 (buyer inside the compose network vs on the host).
-   - Leads from M4: skiplocked's sold-out path costs 4 queries (every sold-out request takes the blocking fallback); counter's 250 claims/s suggests commit latency on a hot row. Test by comparing with `synchronous_commit=off`, as an experiment only.
+1. M6: toxiproxy between sellers and Postgres, the 10 s slowdown mid-sale, open-loop vs closed-loop client against the same stall (C4), 503 retries with the same request_id, orphan counting and recovery.
+   - Include the M1 note: separate "not attempted" (pool-acquire timeout) from "unknown outcome".
 
 ## Known weaknesses / open issues
 _(These feed into the "where it breaks" section of DECISIONS.md.)_
@@ -28,7 +28,10 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - (M1) **A pool-acquire timeout answers 503 "unknown", but the outcome is actually known**: the request never reached the database, so nothing happened. M6 should separate "not attempted, safe to retry" from "unknown outcome".
 - (M2) **The safe seller also saturates at the opening burst.** In the C1 skiplocked run, 1,479 of 51k requests got 503 (all `TimeoutError`: waiting more than 1 s for one of 20 pool connections). p99 was 1.5 s and max 2.4 s. No invariant was affected, because those requests never reached the database. M5 will find the bottleneck; candidates are single-process Python CPU, pool size, and the sold-out path's 4 queries (lookup, skip claim, blocking claim, re-lookup).
 - (M2) **/reset during live traffic isn't safe for the epoch.** A buy whose statement snapshot predates a concurrent TRUNCATE can see an empty `tickets` table and answer a spurious "sold out" for the new epoch. U4 and U3 would flag it. Resetting mid-sale is outside the brief; not handled.
-- (M4) **skiplocked's sold-out path does 4 queries**: lookup, SKIP LOCKED claim (empty), blocking claim (empty), re-lookup. In the brief run, all 50,079 sold-out requests took the blocking fallback, because after sell-out the fast path always finds nothing. 99.8% of traffic takes this path, so it's the first optimisation target in M5 (a cheaper definitive sold-out test, or the M9 cache).
+- (M5) **Cold start**: a freshly (re)started seller has p99 of about 180–290 ms for its first seconds (pool grows 5 → 20, cold caches). This matters after M7's restarts and any deploy. Remedy (not applied): `POOL_MIN=POOL_MAX` plus a warm-up before taking traffic.
+- (M5) **The profiler can't see inside uvloop.** Much of the py-spy time lands in `asyncio/runners.py:run` (uvloop's C code), and `py-spy --native` fails on this stack ("Failed to merge native and python frames"). The bottleneck conclusion rests on the other evidence (CPU, pg_stat_activity, Server-Timing, the fast-path intervention).
+- (M5) **One Python process per instance is the ceiling (~1.5k req/s).** The next lever is more processes (M8); the framework's per-request cost is the largest remaining share.
+- (M4 → fixed in M5) **skiplocked's sold-out path did 4 queries**: lookup, SKIP LOCKED claim (empty), blocking claim (empty), re-lookup. In the brief run, all 50,079 sold-out requests took the blocking fallback, because after sell-out the fast path always finds nothing. 99.8% of traffic takes this path, so it's the first optimisation target in M5 (a cheaper definitive sold-out test, or the M9 cache).
 - (M4) **Under sustained contention, counter and serializable turn into mass 503s.** Large sale: 16,260 (counter) and 19,533 (serializable) of 21k requests got "unknown", and neither sold out by the end of the run. Correct, but unusable.
 - (M1 → supported by M4) **The naive seller handles only about 200–400 buys/s**. The counter strategy (the same single-row design, done safely) measured about 250 claims/s, which supports the hot-row hypothesis. Whether commit/fsync latency is the cause is still unproven (M5).
 - (M1, original note) There were 6–8k 503s per run, and p90 latency was about 1 s, which matches the 1 s acquire timeout. Hypothesis: every buy does `UPDATE sale` on the single row, and each of those commits waits for a WAL fsync while holding the row lock. So buys queue behind fsync latency (the "hot row" problem). The C2 `counter` strategy would have the same problem. Unverified until measured.
@@ -181,3 +184,19 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
   - Brief workload: modest gap (sold out 0.66 / 0.94 / 1.79 s).
   - Large sale: decisive. skiplocked sold 5,000 in 5.4 s; counter was capped at about 250 claims/s; serializable sold 1,472 with 24,927 retries.
 - Honest framing for DECISIONS.md: the Session 3 recommendation of SKIP LOCKED was a guess. The measurement confirms it under contention, but shows it barely matters at 100 tickets. The measurement also found a cost nobody predicted: skiplocked's sold-out path does 4 queries.
+
+### 2026-09-24 — Session 4 (continued): M5, how much load, and where is the bottleneck
+- Built:
+  - Server-Timing header on /buy (acq, alloc, handler). The buyer parses it and reports time outside the handler.
+  - `sweep.sh` (steady open-loop steps; samples docker stats CPU and pg_stat_activity during each step; discarded warm-up) plus `buyer.sweep_report`.
+  - `profile.sh` (py-spy in the seller image with SYS_PTRACE; `pg_test_fsync`) plus `buyer.profile_report`.
+  - `hotrow.sh` (commit flush on/off experiment); `d10.sh` (compose network vs host port).
+- **Fix found by the evidence (D20):** the sold-out fast path, 4 queries → 1. Knee 1,000 → 1,500 req/s; p99 at 1,000/s 310 → 15 ms. New integration test × 3 strategies (34 pass).
+- **Hypothesis confirmed by intervention:** the counter's ~250 claims/s is the disk flush (`pg_test_fsync` about 372/s) with a row lock held across it. With flush off, counter sells 5,000 in 3.8 s; skiplocked barely changes (group commit).
+- **D10 confirmed:** the host port adds about 1 ms p50.
+- **Measurement mistakes caught (all runs moved to `results/discarded/` with reasons):**
+  1. The after-fix sweep's first step measured a cold start (p99 185 ms at 250/s). I first "fixed" this by changing the knee rule's baseline. That was the wrong fix: it made the contaminated step flag itself as the knee. The right fix was a discarded warm-up step (D21) and a rerun.
+  2. Hot-row "off" runs were really "on": ALTER SYSTEM is outranked by the `-c synchronous_commit=on` postgres command-line flag in our compose. Caught because the script prints SHOW synchronous_commit. Fixed with ALTER DATABASE plus a seller restart and a hard check that aborts if the setting didn't apply.
+  3. D10 single runs (direct always first, right after `up`) showed direct p99 280 ms: a cold start mistaken for a path effect. Fixed with a warm-up and 3 alternating rounds.
+  4. A Python edit script with a syntax error silently applied none of the fixes, so attempt 2 repeated both flaws. Lesson: edit scripts with the Edit tool, or a Python file written with the Write tool; `bash -n` before running.
+- Tried and failed: `py-spy --native` (blocking mode needed; then "Failed to merge native and python frames" on uvloop). Stated as a limit in the bottleneck note.

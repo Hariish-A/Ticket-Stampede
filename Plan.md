@@ -220,6 +220,9 @@ naive_sales(ticket_no int, user_id text, request_id text)       -- NO constraint
 | D17 | The client ceiling is measured **closed-loop** against a zero-work nginx target, then checked open-loop at half the ceiling | The target never stalls, so closed-loop hides nothing, and it measures the maximum directly. The open-loop check shows the client keeps its schedule at real test rates. | AI (M3) | 2026-09-24 |
 | D18 | The live auditor runs inside the coordinator process while the workers fire, polling `/status` every 100 ms | The coordinator is otherwise idle, so no extra process is needed. The observer effect (about 10 extra /status requests/s on the seller) is small and stated. | AI (M3) | 2026-09-24 |
 | D19 | **`skiplocked` stays the default, now chosen on evidence (C2).** | 100 tickets: sold out in 0.66 s vs 0.94 (counter) vs 1.79 (serializable); fewest 503s. 5,000 tickets: sold all 5,000 in 5.4 s with p50 55 ms, while counter reached about 250 claims/s and serializable 1,472 tickets with 24,927 retries. Caveat: at the brief's 100 tickets the gap is modest. | AI proposal, confirmed by measurement (M4) | 2026-09-24 |
+| D20 | **Sold-out fast path**: the lookup query also tests `NOT EXISTS (unsold ticket)` in the same snapshot; if the buyer holds nothing and nothing is unsold, answer 409 from that one query | 99.8% of traffic is sold-out. 4 queries became 1: knee 1,000 → 1,500 req/s, p99 at 1,000/s 310 → 15 ms. Correct because committed sales are permanent, and a twin committing later held an unsold row in this snapshot. Covered by a new integration test × 3 strategies. | AI (M5), measured | 2026-09-24 |
+| D21 | Performance experiments discard a warm-up step and alternate the order of compared variants | A cold seller (pool growing 5 → 20, cold caches) has p99 of about 180–290 ms for its first seconds. It contaminated one sweep and one D10 comparison before this rule. | AI (M5) | 2026-09-24 |
+| D10 ✔ | Confirmed by M5 measurement: the host port path adds about 1 ms p50, 1.5–4 ms p99 at 800 req/s | 3 alternating rounds | Measured (M5) | 2026-09-24 |
 
 ## 5. Testing and verification strategy
 | Layer | What | What it proves |
@@ -302,7 +305,7 @@ Rules:
 - All 3 strategies pass the invariants.
 - The default strategy is chosen from the numbers and recorded in §4. If the data contradicts the SKIP LOCKED guess, we go with the data.
 
-### M5: How much load, and where is the bottleneck? · ~2.0 h
+### M5: How much load, and where is the bottleneck? · ~2.0 h · ✅ DONE 2026-09-24 (results/M5-bottleneck.md)
 **Build**
 - The Server-Timing header, and the buyer's breakdown of it.
 - A rate sweep.
@@ -406,6 +409,7 @@ The plan runs about 1 hour over the 15-hour budget. If we need to cut, M9 goes f
 
 
 ## 7. Decision changes (history)
+- 2026-09-24 (M5): the sold-out answer moved from 4 queries (lookup, SKIP LOCKED claim, blocking claim, re-lookup) to 1 query (D20), after profiling. The full path remains for buyers who might still get a ticket.
 - 2026-09-24 (M3): the open-loop client's "no connection limit" (M1) was replaced by a per-process in-flight cap that counts waiting as send lag (D16). The unlimited version collapsed under overload during calibration.
 - 2026-09-24 (M2): the post-sale probes were changed from "pre-scheduled against the earliest requests" to "built from actual phase-1 outcomes" (D15). A C1 run showed that 0 of 20 probes had hit a winner.
 - 2026-09-24: the milestones were changed from a list of technical tasks to vertical slices, each ending in something that runs (D9, at the user's request).

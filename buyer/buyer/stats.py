@@ -44,6 +44,16 @@ def summarize(attempts: list[Attempt], t0: float, workers: list[WorkerResult] = 
         # How late the client was in sending. If this grows, the client -- not
         # the seller -- is the bottleneck and the run's numbers are suspect.
         "send_lag_ms": distribution([(a.sent - a.sched) * 1000 for a in attempts]),
+        # Where the seller's time went (Server-Timing). `outside_handler` = the buyer's
+        # service time minus the handler's own time: HTTP parsing, waiting for the
+        # event loop, network. It grows when the seller process is CPU-bound.
+        "server_ms": {
+            "acq": distribution([a.srv_acq for a in responded if a.srv_acq is not None]),
+            "alloc": distribution([a.srv_alloc for a in responded if a.srv_alloc is not None]),
+            "handler": distribution([a.srv_handler for a in responded if a.srv_handler is not None]),
+            "outside_handler": distribution([(a.done - a.sent) * 1000 - a.srv_handler
+                                             for a in responded if a.srv_handler is not None]),
+        },
         "client": {
             "processes": len(workers),
             # Fraction of one core each worker used; ~100% means the client was the limit.

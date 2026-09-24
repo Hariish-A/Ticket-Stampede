@@ -1,0 +1,340 @@
+run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:125) 9
+request_body_to_args (fastapi/dependencies/utils.py:901);_validate_value_with_model_field (fastapi/dependencies/utils.py:713) 2
+release (asyncpg/pool.py:218);reset (asyncpg/connection.py:1562);__aenter__ (asyncio/timeouts.py:94);sender (starlette/_exception_handler.py:39);_send (starlette/middleware/errors.py:157);__init__ (starlette/responses.py:180);iscoroutine (asyncio/coroutines.py:34) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (starlette/routing.py:266);ip_address (ipaddress.py:45) 1
+app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666);request_body_to_args (fastapi/dependencies/utils.py:890) 1
+__aenter__ (asyncpg/pool.py:1025) 1
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (starlette/routing.py:266) 1
+_remove (_weakrefset.py:45) 2
+send (uvicorn/protocols/http/httptools_impl.py:549);on_response_complete (uvicorn/protocols/http/httptools_impl.py:314);__init__ (starlette/responses.py:44);init_headers (starlette/responses.py:79);dumps (json/__init__.py:238) 1
+json (starlette/requests.py:250) 1
+send (uvicorn/protocols/http/httptools_impl.py:511) 3
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:74);app (fastapi/routing.py:355);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:125) 1
+request_body_to_args (fastapi/dependencies/utils.py:901);type_ (fastapi/_compat.py:108) 1
+__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (fastapi/routing.py:592) 1
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666);query_params (starlette/requests.py:131);detect_encoding (json/__init__.py:262) 1
+_execute (asyncpg/connection.py:1864);__execute (asyncpg/connection.py:1961);_do_execute (asyncpg/connection.py:2012) 1
+release (asyncpg/pool.py:905);shield (asyncio/tasks.py:865) 1
+__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrap_app_handling_exceptions (starlette/_exception_handler.py:31);on_headers_complete (uvicorn/protocols/http/httptools_impl.py:292) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);data_received (uvicorn/protocols/http/httptools_impl.py:171);on_headers_complete (uvicorn/protocols/http/httptools_impl.py:260) 2
+_do_execute (asyncpg/connection.py:2027);_get_statement (asyncpg/connection.py:408) 1
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666);request_params_to_args (fastapi/dependencies/utils.py:744);decode (json/decoder.py:342) 1
+app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);solve_dependencies (fastapi/dependencies/utils.py:588) 2
+wait (asyncio/locks.py:212);_get_loop (asyncio/mixins.py:16);<genexpr> (uvicorn/middleware/proxy_headers.py:120) 1
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:491) 2
+app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291) 1
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:74) 6
+app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301) 1
+release (asyncpg/pool.py:905);shield (asyncio/tasks.py:928);_get_loop (asyncio/futures.py:309) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);data_received (uvicorn/protocols/http/httptools_impl.py:171);_unset_keepalive_if_required (uvicorn/protocols/http/httptools_impl.py:137) 1
+__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:250) 2
+_reset (asyncpg/connection.py:1533);_check_open (asyncpg/connection.py:1596) 5
+_acquire_impl (asyncpg/pool.py:857);acquire (asyncpg/pool.py:170) 2
+wait_for (asyncio/tasks.py:519);__aenter__ (asyncio/timeouts.py:94) 5
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291) 1
+__execute (asyncpg/connection.py:1961);_do_execute (asyncpg/connection.py:1993) 1
+buy (app/allocators/constrained.py:84);resolve_existing (app/allocators/constrained.py:52) 4
+app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:689);cookies (starlette/requests.py:142);decode (json/decoder.py:338) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);release (asyncpg/pool.py:218);reset (asyncpg/connection.py:1558);timeout (asyncio/timeouts.py:146) 1
+app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:101) 2
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);release (asyncpg/pool.py:218);is_closed (asyncpg/connection.py:1491);resume_reading (uvicorn/protocols/http/flow_control.py:29) 1
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:689) 1
+release (asyncpg/pool.py:905);shield (asyncio/tasks.py:928) 4
+sender (starlette/_exception_handler.py:39);_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:488) 2
+release (asyncpg/pool.py:905);shield (asyncio/tasks.py:928);ensure_future (asyncio/tasks.py:681) 1
+release (asyncpg/pool.py:905);shield (asyncio/tasks.py:898);ensure_future (asyncio/tasks.py:695);iscoroutine (asyncio/coroutines.py:34) 1
+run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:125);server_timing (app/main.py:91) 1
+fetch (asyncpg/connection.py:690);_execute (asyncpg/connection.py:1864);__execute (asyncpg/connection.py:1961) 2
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:250) 1
+receive (uvicorn/protocols/http/httptools_impl.py:570);clear (asyncio/locks.py:197);matches (starlette/routing.py:261) 2
+stream (starlette/requests.py:236) 1
+wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:74) 3
+release (asyncpg/pool.py:235);_setup_inactive_callback (asyncpg/pool.py:262);ensure_future (asyncio/tasks.py:695) 1
+app (starlette/routing.py:73);app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:96);__init__ (starlette/responses.py:43);get_content_type (email/message.py:624) 1
+send (uvicorn/protocols/http/httptools_impl.py:549);cast (typing.py:2195);__init__ (starlette/responses.py:44);init_headers (starlette/responses.py:60) 1
+run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:101) 1
+wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:259);body (starlette/requests.py:241) 1
+__aenter__ (asyncio/timeouts.py:95);reschedule (asyncio/timeouts.py:52) 1
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);json (starlette/requests.py:249) 1
+run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:103) 1
+app (starlette/routing.py:73) 1
+wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:260);body (starlette/requests.py:241) 1
+app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:262);body (starlette/requests.py:241) 2
+__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:717) 1
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:74);app (fastapi/routing.py:242);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:125) 1
+__execute (asyncpg/connection.py:1968);_do_execute (asyncpg/connection.py:2029) 1
+__aenter__ (asyncio/timeouts.py:95);reschedule (asyncio/timeouts.py:71);_get_loop (asyncio/futures.py:309) 5
+ 22
+request_body_to_args (fastapi/dependencies/utils.py:901);__init__ (<string>:2) 1
+__aenter__ (asyncio/timeouts.py:85) 1
+buy (app/allocators/constrained.py:84) 4
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (starlette/routing.py:266) 1
+__aenter__ (asyncio/timeouts.py:95);reschedule (asyncio/timeouts.py:68);ensure_future (asyncio/tasks.py:695) 2
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291) 1
+handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:74) 2
+wait_for (asyncio/tasks.py:519);__aexit__ (asyncio/timeouts.py:116) 1
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666);query_params (starlette/requests.py:131);decode (json/decoder.py:338) 1
+app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:103) 2
+_do_execute (asyncpg/connection.py:2027) 4
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);release (asyncpg/pool.py:218);reset (asyncpg/connection.py:1558) 1
+__aexit__ (asyncio/timeouts.py:117);get_nowait (asyncio/queues.py:182) 1
+app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:101);__aenter__ (asyncpg/pool.py:1024) 1
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:673);query_params (starlette/requests.py:131) 1
+send (uvicorn/protocols/http/httptools_impl.py:549);on_response_complete (uvicorn/protocols/http/httptools_impl.py:333);__init__ (starlette/responses.py:44);init_headers (starlette/responses.py:79) 1
+__call__ (starlette/routing.py:715) 1
+_do_execute (asyncpg/connection.py:2027);<lambda> (asyncpg/connection.py:1942);_wakeup_next (asyncio/queues.py:60) 1
+release (asyncpg/pool.py:905);_on_release (asyncpg/connection.py:1777) 1
+json (starlette/requests.py:250);__init__ (contextlib.py:481);__getitem__ (starlette/datastructures.py:538) 1
+buy (app/allocators/constrained.py:78);fetch (asyncpg/connection.py:690);_execute (asyncpg/connection.py:1864) 2
+run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:103);__aenter__ (asyncpg/pool.py:1024) 1
+__aexit__ (asyncio/timeouts.py:97) 1
+__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:259);body (starlette/requests.py:241) 1
+handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:689) 1
+send (uvicorn/protocols/http/httptools_impl.py:549);cast (typing.py:2195);__init__ (starlette/responses.py:44);init_headers (starlette/responses.py:79);dumps (json/__init__.py:238) 1
+__aexit__ (asyncio/timeouts.py:117);is_closed (asyncpg/connection.py:1491) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);release (asyncpg/pool.py:187) 1
+app (starlette/routing.py:73);app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:103) 1
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:496) 2
+solve_dependencies (fastapi/dependencies/utils.py:689) 8
+release (asyncpg/pool.py:218);reset (asyncpg/connection.py:1562);__aenter__ (asyncio/timeouts.py:94) 3
+run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:125);server_timing (app/main.py:93) 2
+reset (asyncpg/connection.py:1562);_reset (asyncpg/connection.py:1518) 1
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:501) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42) 2
+app (starlette/routing.py:73);app (fastapi/routing.py:250) 1
+wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:101);__aenter__ (asyncpg/pool.py:1024) 1
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:494) 1
+release (asyncpg/pool.py:905);shield (asyncio/tasks.py:898) 6
+wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666);query_params (starlette/requests.py:131);decode (json/decoder.py:338) 2
+buy (app/main.py:101);buy (app/allocators/constrained.py:79) 1
+app (starlette/routing.py:73);app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212) 1
+json (starlette/requests.py:250);loads (json/__init__.py:341) 2
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212) 1
+__aexit__ (contextlib.py:758) 8
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:489) 2
+buy (app/allocators/constrained.py:84);resolve_existing (app/allocators/constrained.py:59) 6
+json (starlette/requests.py:250);loads (json/__init__.py:346);__getitem__ (starlette/datastructures.py:538) 1
+on_headers_complete (uvicorn/protocols/http/httptools_impl.py:292) 1
+app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);solve_dependencies (fastapi/dependencies/utils.py:655);headers (starlette/responses.py:85);detect_encoding (json/__init__.py:253) 1
+_do_execute (asyncpg/connection.py:2071) 5
+app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666);query_params (starlette/requests.py:131);decode (json/decoder.py:342) 1
+app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:103);__aenter__ (asyncpg/pool.py:1024);_acquire (asyncpg/pool.py:845) 1
+app (starlette/routing.py:73);app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:101) 5
+request_body_to_args (fastapi/dependencies/utils.py:901);_validate_value_with_model_field (fastapi/dependencies/utils.py:706);init_headers (starlette/responses.py:79) 1
+handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301) 2
+__execute (asyncpg/connection.py:1968);_do_execute (asyncpg/connection.py:2030) 1
+app (starlette/routing.py:73);app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:103);__aenter__ (asyncpg/pool.py:1024);_acquire (asyncpg/pool.py:845);validate (fastapi/_compat.py:129) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:732) 7
+_execute (asyncpg/connection.py:1864) 1
+_acquire (asyncpg/pool.py:866);wait_for (asyncio/tasks.py:520);_acquire_impl (asyncpg/pool.py:847);get (asyncio/queues.py:149) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:258);body (starlette/requests.py:241) 1
+sender (starlette/_exception_handler.py:39);sender (starlette/_exception_handler.py:39);_send (starlette/middleware/errors.py:162) 1
+__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:262);json (starlette/requests.py:246);__getitem__ (starlette/datastructures.py:538) 1
+app (starlette/routing.py:76) 4
+__aexit__ (asyncio/timeouts.py:117);_maybe_cancel_inactive_callback (asyncpg/pool.py:267) 1
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:505) 1
+run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (starlette/routing.py:266) 1
+reset (asyncpg/connection.py:1558);__aexit__ (asyncio/timeouts.py:117) 2
+_acquire_impl (asyncpg/pool.py:857);acquire (asyncpg/pool.py:149);is_closed (asyncpg/connection.py:1491) 1
+wait (asyncio/locks.py:212) 2
+__aenter__ (asyncio/timeouts.py:95);reschedule (asyncio/timeouts.py:71);ensure_future (asyncio/tasks.py:695) 3
+wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:31) 2
+__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:259) 2
+buy (app/main.py:125);server_timing (app/main.py:93) 3
+wait_for (asyncio/tasks.py:519);__aexit__ (asyncio/timeouts.py:103) 3
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666);query_params (starlette/requests.py:131) 2
+wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:689);query_params (starlette/requests.py:131) 1
+app (fastapi/routing.py:355);__aexit__ (contextlib.py:713) 1
+__aenter__ (asyncio/timeouts.py:95);reschedule (asyncio/timeouts.py:61) 1
+solve_dependencies (fastapi/dependencies/utils.py:689);request_body_to_args (fastapi/dependencies/utils.py:898) 3
+send (uvicorn/protocols/http/httptools_impl.py:549);on_response_complete (uvicorn/protocols/http/httptools_impl.py:332);__init__ (starlette/responses.py:44);init_headers (starlette/responses.py:79);dumps (json/__init__.py:238) 4
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:549) 8
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (starlette/routing.py:254) 1
+handle (starlette/routing.py:288) 6
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (starlette/routing.py:254) 1
+release (asyncpg/pool.py:218);reset (asyncpg/connection.py:1562);timeout (asyncio/timeouts.py:146) 1
+__aexit__ (asyncpg/pool.py:1031);release (asyncpg/pool.py:905) 1
+__aenter__ (asyncio/timeouts.py:95);reschedule (asyncio/timeouts.py:71);validate (fastapi/_compat.py:128);validate_python (pydantic/type_adapter.py:441) 1
+_acquire (asyncpg/pool.py:866);wait_for (asyncio/tasks.py:520);timeout (asyncio/timeouts.py:146) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);data_received (uvicorn/protocols/http/httptools_impl.py:171);on_headers_complete (uvicorn/protocols/http/httptools_impl.py:262) 1
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:546) 1
+__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:253) 1
+execute (asyncpg/connection.py:349);_check_open (asyncpg/connection.py:1596);is_closed (asyncpg/connection.py:1491) 1
+release (asyncpg/pool.py:235);_setup_inactive_callback (asyncpg/pool.py:262) 9
+__aexit__ (asyncpg/pool.py:1031);release (asyncpg/pool.py:896) 3
+release (asyncpg/pool.py:235);reset (asyncpg/connection.py:1558) 1
+run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62) 1
+sender (starlette/_exception_handler.py:39);_send (starlette/middleware/errors.py:162) 2
+buy (app/allocators/constrained.py:78);fetch (asyncpg/connection.py:690);_execute (asyncpg/connection.py:1852) 1
+__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291) 1
+__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165) 1
+run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288) 1
+release (asyncpg/pool.py:905);shield (asyncio/tasks.py:928);ensure_future (asyncio/tasks.py:695) 3
+__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:58) 1
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:510) 1
+run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:31);ensure_future (asyncio/tasks.py:695) 1
+app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:96) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);data_received (uvicorn/protocols/http/httptools_impl.py:171);on_headers_complete (uvicorn/protocols/http/httptools_impl.py:283) 2
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:109) 1
+__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:259);body (starlette/requests.py:241) 1
+buy (app/main.py:125);__init__ (starlette/responses.py:172) 2
+run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:125);server_timing (app/main.py:89) 3
+json (starlette/requests.py:250);loads (json/__init__.py:346) 1
+wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:250) 1
+__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:258) 1
+_acquire (asyncpg/pool.py:866);wait_for (asyncio/tasks.py:519);__aenter__ (asyncio/timeouts.py:94) 1
+app (starlette/routing.py:74);__call__ (starlette/responses.py:148) 1
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:488) 1
+send (uvicorn/protocols/http/httptools_impl.py:549);on_response_complete (uvicorn/protocols/http/httptools_impl.py:333) 5
+wait (asyncio/locks.py:212);_get_loop (asyncio/mixins.py:16) 1
+body (starlette/requests.py:244) 1
+release (asyncpg/pool.py:905);shield (asyncio/tasks.py:903);ensure_future (asyncio/tasks.py:680) 1
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (fastapi/routing.py:589) 2
+__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (starlette/routing.py:266) 1
+app (starlette/routing.py:735);matches (fastapi/routing.py:592) 1
+request_body_to_args (fastapi/dependencies/utils.py:901) 2
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:34) 4
+__execute (asyncpg/connection.py:1961);_do_execute (asyncpg/connection.py:2027);<lambda> (asyncpg/connection.py:1942) 1
+receive (uvicorn/protocols/http/httptools_impl.py:570);clear (asyncio/locks.py:197);matches (starlette/routing.py:265) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);data_received (uvicorn/protocols/http/httptools_impl.py:171) 27
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (fastapi/routing.py:589) 1
+__aenter__ (asyncio/timeouts.py:95);reschedule (asyncio/timeouts.py:71);validate (fastapi/_compat.py:129) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);data_received (uvicorn/protocols/http/httptools_impl.py:171);on_headers_complete (uvicorn/protocols/http/httptools_impl.py:253) 1
+wait (asyncio/locks.py:212);_get_loop (asyncio/mixins.py:21);matches (starlette/routing.py:265) 1
+release (asyncpg/pool.py:218);reset (asyncpg/connection.py:1560) 1
+release (asyncpg/pool.py:905);shield (asyncio/tasks.py:926) 1
+reset (asyncpg/connection.py:1562);get_reset_query (asyncpg/connection.py:1733) 1
+wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);solve_dependencies (fastapi/dependencies/utils.py:588) 2
+app (starlette/routing.py:736) 2
+fetch (asyncpg/connection.py:690);_execute (asyncpg/connection.py:1864) 1
+wait (asyncio/locks.py:212);_get_loop (asyncio/mixins.py:21);matches (starlette/routing.py:260) 1
+run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (starlette/routing.py:265);ip_address (ipaddress.py:45) 1
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);solve_dependencies (fastapi/dependencies/utils.py:588) 1
+__aenter__ (asyncpg/pool.py:1025);_acquire (asyncpg/pool.py:866) 1
+solve_dependencies (fastapi/dependencies/utils.py:689);request_body_to_args (fastapi/dependencies/utils.py:876);decode (json/decoder.py:338) 1
+__aenter__ (asyncio/timeouts.py:95);reschedule (asyncio/timeouts.py:71) 30
+buy (app/allocators/constrained.py:84);resolve_existing (app/allocators/constrained.py:57) 1
+_acquire (asyncpg/pool.py:866);_acquire_impl (asyncpg/pool.py:846) 1
+body (starlette/requests.py:241) 3
+__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);solve_dependencies (fastapi/dependencies/utils.py:587) 1
+wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:101) 1
+__aexit__ (asyncio/timeouts.py:117) 11
+run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (fastapi/routing.py:589) 1
+json (starlette/requests.py:250);loads (json/__init__.py:341);__getitem__ (starlette/datastructures.py:538) 1
+solve_dependencies (fastapi/dependencies/utils.py:689);query_params (starlette/requests.py:131);get_content_type (email/message.py:628) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:242);__init__ (contextlib.py:481) 2
+run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);matches (starlette/routing.py:254) 2
+__init__ (contextlib.py:482) 1
+sender (starlette/_exception_handler.py:39);sender (starlette/_exception_handler.py:39);_send (starlette/middleware/errors.py:157) 1
+send (uvicorn/protocols/http/httptools_impl.py:549);on_response_complete (uvicorn/protocols/http/httptools_impl.py:333);__init__ (starlette/responses.py:44);init_headers (starlette/responses.py:70) 1
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);solve_dependencies (fastapi/dependencies/utils.py:645) 1
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:503) 3
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);solve_dependencies (fastapi/dependencies/utils.py:655);headers (starlette/responses.py:84);detect_encoding (json/__init__.py:262) 1
+release (asyncpg/pool.py:218);reset (asyncpg/connection.py:1562) 1
+release (asyncpg/pool.py:905);_on_release (asyncpg/connection.py:1778) 1
+__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:259) 1
+__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62) 2
+_acquire (asyncpg/pool.py:866);wait_for (asyncio/tasks.py:519) 4
+buy (app/allocators/constrained.py:78);fetch (asyncpg/connection.py:690);_execute (asyncpg/connection.py:1864);__execute (asyncpg/connection.py:1931) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:290) 1
+sender (starlette/_exception_handler.py:39);_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:511) 1
+__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291) 1
+on_headers_complete (uvicorn/protocols/http/httptools_impl.py:291) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:69) 1
+handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73) 2
+handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291) 1
+solve_dependencies (fastapi/dependencies/utils.py:689);request_body_to_args (fastapi/dependencies/utils.py:893) 2
+release (asyncpg/pool.py:235);_release (asyncpg/pool.py:305) 2
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:74);app (fastapi/routing.py:290);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:125) 1
+wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:74);__call__ (starlette/responses.py:148) 1
+app (fastapi/routing.py:250);body (starlette/requests.py:241) 2
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76) 1
+_execute (asyncpg/connection.py:1864);__execute (asyncpg/connection.py:1961) 6
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);buy (app/main.py:96);validate (fastapi/_compat.py:128);validate_python (pydantic/type_adapter.py:441) 1
+wait_for (asyncio/tasks.py:519);_acquire_impl (asyncpg/pool.py:849) 1
+buy (app/main.py:101);buy (app/allocators/constrained.py:84) 1
+execute (asyncpg/connection.py:349) 12
+app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:103);buy (app/allocators/constrained.py:84) 1
+__aenter__ (asyncpg/pool.py:1025);_acquire (asyncpg/pool.py:866);wait_for (asyncio/tasks.py:519);__aenter__ (asyncio/timeouts.py:94);reschedule (asyncio/timeouts.py:71) 1
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666) 1
+request_body_to_args (fastapi/dependencies/utils.py:901);_validate_value_with_model_field (fastapi/dependencies/utils.py:706);__init__ (starlette/datastructures.py:398) 1
+run_asgi (uvicorn/protocols/http/httptools_impl.py:433) 3
+app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73) 1
+buy (app/allocators/constrained.py:78);fetch (asyncpg/connection.py:690);_execute (asyncpg/connection.py:1864);__execute (asyncpg/connection.py:1961);_do_execute (asyncpg/connection.py:2027) 1
+app (starlette/routing.py:74);__call__ (starlette/responses.py:155);sender (starlette/_exception_handler.py:39) 1
+_execute (asyncpg/connection.py:1873) 1
+sender (starlette/_exception_handler.py:39);_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:486) 1
+_execute (asyncpg/connection.py:1864);__execute (asyncpg/connection.py:1931) 2
+send (uvicorn/protocols/http/httptools_impl.py:549);on_response_complete (uvicorn/protocols/http/httptools_impl.py:333);__init__ (starlette/responses.py:44);init_headers (starlette/responses.py:68) 3
+wait (asyncio/locks.py:212);_get_loop (asyncio/mixins.py:21);matches (starlette/routing.py:254) 2
+wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);solve_dependencies (fastapi/dependencies/utils.py:649) 1
+send (uvicorn/protocols/http/httptools_impl.py:549);on_response_complete (uvicorn/protocols/http/httptools_impl.py:326);__init__ (starlette/responses.py:44);init_headers (starlette/responses.py:68) 1
+send (uvicorn/protocols/http/httptools_impl.py:549);on_response_complete (uvicorn/protocols/http/httptools_impl.py:332) 9
+release (asyncpg/pool.py:905);shield (asyncio/tasks.py:927) 1
+app (fastapi/routing.py:250);body (starlette/requests.py:238) 1
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301) 1
+app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:290);get (<frozen _collections_abc>:807) 2
+app (fastapi/routing.py:355);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:125) 5
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62) 4
+__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:250) 3
+release (asyncpg/pool.py:235);_setup_inactive_callback (asyncpg/pool.py:261) 10
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:511) 9
+run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:101);buy (app/allocators/constrained.py:79) 1
+handle (starlette/routing.py:288);app (starlette/routing.py:76) 1
+__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:259);body (starlette/requests.py:241) 1
+app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:649) 1
+wrapped_app (starlette/_exception_handler.py:42) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:250) 1
+_reset (asyncpg/connection.py:1533) 2
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:262);body (starlette/requests.py:241) 1
+send (uvicorn/protocols/http/httptools_impl.py:549);cast (typing.py:2195);__init__ (starlette/responses.py:44);init_headers (starlette/responses.py:79) 1
+__call__ (starlette/routing.py:715);app (starlette/routing.py:732) 1
+release (asyncpg/pool.py:905);_on_release (asyncpg/connection.py:1780) 1
+reset (asyncpg/connection.py:1562);get_reset_query (asyncpg/connection.py:1732) 1
+_acquire (asyncpg/pool.py:866);wait_for (asyncio/tasks.py:472) 2
+buy (app/allocators/constrained.py:78);fetch (asyncpg/connection.py:690) 1
+run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:732) 1
+_send (starlette/middleware/errors.py:162) 1
+sender (starlette/_exception_handler.py:39);sender (starlette/_exception_handler.py:39) 1
+on_headers_complete (uvicorn/protocols/http/httptools_impl.py:283) 1
+__execute (asyncpg/connection.py:1961);_do_execute (asyncpg/connection.py:2027) 29
+__execute (asyncpg/connection.py:1968);_do_execute (asyncpg/connection.py:2027) 1
+app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:262);get (<frozen _collections_abc>:807) 1
+wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:262);headers (starlette/requests.py:126);matches (starlette/routing.py:254) 1
+__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:732) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118) 1204
+__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:260);headers (starlette/requests.py:125) 1
+_ip_int_from_string (ipaddress.py:1209) 1
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:259);body (starlette/requests.py:238) 1
+__call__ (starlette/middleware/exceptions.py:62) 2
+_get_statement (asyncpg/connection.py:412);get (asyncpg/connection.py:2529) 1
+wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291) 1
+_do_execute (asyncpg/connection.py:2027);<lambda> (asyncpg/connection.py:1942) 6
+app (starlette/routing.py:73);app (fastapi/routing.py:301);run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:101);__instancecheck__ (<frozen abc>:119) 1
+release (asyncpg/pool.py:218);reset (asyncpg/connection.py:1560);timeout (asyncio/timeouts.py:145) 1
+request_body_to_args (fastapi/dependencies/utils.py:901);_validate_value_with_model_field (fastapi/dependencies/utils.py:706) 5
+wait_for (asyncio/tasks.py:519);__aexit__ (asyncio/timeouts.py:106) 4
+__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:257) 1
+app (starlette/routing.py:74);__call__ (starlette/responses.py:148);sender (starlette/_exception_handler.py:34);__init__ (starlette/responses.py:44);init_headers (starlette/responses.py:59) 1
+reset (asyncpg/connection.py:1562);timeout (asyncio/timeouts.py:146);<genexpr> (app/allocators/constrained.py:57) 1
+__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:240);matches (starlette/routing.py:265) 1
+reset (asyncpg/connection.py:1562);execute (asyncpg/connection.py:349) 17
+app (starlette/routing.py:735);matches (starlette/routing.py:253) 1
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:34);__contains__ (uvicorn/middleware/proxy_headers.py:117);ip_address (ipaddress.py:45);__init__ (ipaddress.py:1319);_ip_int_from_string (ipaddress.py:1209) 1
+sender (starlette/_exception_handler.py:39) 1
+handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);solve_dependencies (fastapi/dependencies/utils.py:649) 2
+on_headers_complete (uvicorn/protocols/http/httptools_impl.py:286) 1
+reset (asyncpg/connection.py:1558) 3
+handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666) 1
+run_endpoint_function (fastapi/routing.py:212);buy (app/main.py:125);server_timing (app/main.py:92) 1
+send (uvicorn/protocols/http/httptools_impl.py:549);cast (typing.py:2195) 1
+__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);get_content_subtype (email/message.py:645) 1
+wait_for (asyncio/tasks.py:519);timeout (asyncio/timeouts.py:146) 1
+__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:262);get (<frozen _collections_abc>:807) 2
+<module> (uvicorn:8);__call__ (click/core.py:1631);main (click/core.py:1552);invoke (click/core.py:1415);invoke (click/core.py:910);main (uvicorn/main.py:459);run (uvicorn/main.py:579);run (uvicorn/server.py:66);run (asyncio/runners.py:195);run (asyncio/runners.py:118);run_asgi (uvicorn/protocols/http/httptools_impl.py:409);__call__ (uvicorn/middleware/proxy_headers.py:60);__call__ (fastapi/applications.py:1054);__call__ (starlette/applications.py:113);__call__ (starlette/middleware/errors.py:165);__call__ (starlette/middleware/exceptions.py:62);wrapped_app (starlette/_exception_handler.py:42);__call__ (starlette/routing.py:715);app (starlette/routing.py:735);handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:250);body (starlette/requests.py:241);add (_weakrefset.py:88) 1
+_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:549);cast (typing.py:2195) 2
+handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:291);solve_dependencies (fastapi/dependencies/utils.py:645) 1
+request_body_to_args (fastapi/dependencies/utils.py:901);__init__ (<string>:2);validate (fastapi/_compat.py:129);validate_python (pydantic/type_adapter.py:441) 1
+handle (starlette/routing.py:288);app (starlette/routing.py:76);wrapped_app (starlette/_exception_handler.py:42);app (starlette/routing.py:73);app (fastapi/routing.py:301);solve_dependencies (fastapi/dependencies/utils.py:666);query_params (starlette/requests.py:131) 1
+sender (starlette/_exception_handler.py:39);_send (starlette/middleware/errors.py:162);send (uvicorn/protocols/http/httptools_impl.py:491) 1

@@ -37,6 +37,10 @@ class Attempt:
     replayed: bool = False
     existing: bool = False
     error: str | None = None
+    # From the seller's Server-Timing header (ms): pool wait, allocator queries, whole handler.
+    srv_acq: float | None = None
+    srv_alloc: float | None = None
+    srv_handler: float | None = None
 
     @property
     def confirmed(self) -> bool:
@@ -75,6 +79,8 @@ async def _send(session: aiohttp.ClientSession, p: Planned, sched: float | None)
     try:
         async with session.post("/buy", json={"user_id": p.user_id, "request_id": p.request_id}) as resp:
             a.status = resp.status
+            timing = parse_server_timing(resp.headers.get("Server-Timing"))
+            a.srv_acq, a.srv_alloc, a.srv_handler = timing.get("acq"), timing.get("alloc"), timing.get("handler")
             body = await resp.json(content_type=None)
     except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError) as exc:
         a.error = type(exc).__name__
@@ -86,6 +92,21 @@ async def _send(session: aiohttp.ClientSession, p: Planned, sched: float | None)
         a.replayed = bool(body.get("replayed"))
         a.existing = bool(body.get("existing"))
     return a
+
+
+def parse_server_timing(header: str | None) -> dict[str, float]:
+    """'acq;dur=0.08, alloc;dur=2.47' -> {'acq': 0.08, 'alloc': 2.47}. Unknown/malformed parts are skipped."""
+    out: dict[str, float] = {}
+    for part in (header or "").split(","):
+        name, _, rest = part.strip().partition(";")
+        for param in rest.split(";"):
+            key, _, value = param.strip().partition("=")
+            if key == "dur" and name:
+                try:
+                    out[name] = float(value)
+                except ValueError:
+                    pass
+    return out
 
 
 def _session(target: str, timeout: float) -> aiohttp.ClientSession:

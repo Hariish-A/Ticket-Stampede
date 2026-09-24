@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from contextlib import asynccontextmanager
 
 import asyncpg
@@ -75,18 +76,41 @@ async def reset(body: ResetIn):
     return {"status": "reset", "epoch": epoch, "total": body.count, "allocator": settings.allocator}
 
 
+def server_timing(start: float, acquired: float | None, allocated: float | None) -> dict:
+    """Server-Timing header: where this request's time went inside the handler.
+    acq = waiting for a pool connection; alloc = the allocator's queries (incl.
+    asyncpg overhead); handler = all of it. The buyer subtracts `handler` from
+    the latency it measured: the rest was spent outside the handler (HTTP
+    parsing, queueing for the event loop, network) -- the part that grows when
+    this process runs out of CPU."""
+    now = time.perf_counter()
+    parts = []
+    if acquired is not None:
+        parts.append(f"acq;dur={(acquired - start) * 1000:.2f}")
+        if allocated is not None:
+            parts.append(f"alloc;dur={(allocated - acquired) * 1000:.2f}")
+    parts.append(f"handler;dur={(now - start) * 1000:.2f}")
+    return {"Server-Timing": ", ".join(parts)}
+
+
 @app.post("/buy")
 async def buy(body: BuyIn):
+    start = time.perf_counter()
+    acquired = allocated = None
     try:
         async with app.state.pool.acquire(timeout=settings.pool_acquire_timeout) as conn:
+            acquired = time.perf_counter()
             result = await app.state.allocator.buy(conn, body.user_id, body.request_id)
+            allocated = time.perf_counter()
     except DB_ERRORS as exc:
         log.warning("buy failed: %r", exc)
-        return unknown_outcome()
+        resp = unknown_outcome()
+        resp.headers.update(server_timing(start, acquired, allocated))
+        return resp
 
     match result:
         case Purchased():
-            return {
+            code, content = 200, {
                 "status": "purchased",
                 "ticket_no": result.ticket_no,
                 "epoch": result.epoch,
@@ -94,12 +118,11 @@ async def buy(body: BuyIn):
                 "existing": result.existing,
             }
         case SoldOut():
-            return JSONResponse(status_code=409, content={"status": "sold_out", "epoch": result.epoch})
+            code, content = 409, {"status": "sold_out", "epoch": result.epoch}
         case RequestIdConflict():
-            return JSONResponse(
-                status_code=422,
-                content={"status": "request_id_conflict", "detail": "request_id already used by another user_id"},
-            )
+            code, content = 422, {"status": "request_id_conflict",
+                                  "detail": "request_id already used by another user_id"}
+    return JSONResponse(status_code=code, content=content, headers=server_timing(start, acquired, allocated))
 
 
 @app.get("/status")

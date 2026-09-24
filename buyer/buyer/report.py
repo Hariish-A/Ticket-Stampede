@@ -38,6 +38,16 @@ def render_markdown(meta: dict, stats: dict, checks: list[Check]) -> str:
     ):
         d = stats[key]
         lines.append(f"| {label} | {_ms(d['p50'])} | {_ms(d['p90'])} | {_ms(d['p99'])} | {_ms(d['max'])} |")
+    srv = stats.get("server_ms") or {}
+    if srv.get("handler", {}).get("count"):
+        for key, label in (
+            ("acq", "↳ seller: waiting for a DB connection"),
+            ("alloc", "↳ seller: allocator queries"),
+            ("handler", "↳ seller: whole handler"),
+            ("outside_handler", "↳ outside the handler (HTTP, event-loop queue, network)"),
+        ):
+            d = srv[key]
+            lines.append(f"| {label} | {_ms(d['p50'])} | {_ms(d['p90'])} | {_ms(d['p99'])} | {_ms(d['max'])} |")
     lines += ["", f"Responses by HTTP status: `{stats['by_status']}`  "]
     lines.append(f"Requests by kind: `{stats['by_kind']}`  ")
     if stats["errors"]:

@@ -18,8 +18,16 @@ import asyncpg
 
 from ..sale import BuyResult, Purchased, RequestIdConflict, SoldOut
 
+# Also answers "is the sale over?" in the same statement, i.e. the same snapshot.
+# If this request/user holds nothing AND no ticket is unsold in that snapshot,
+# "sold out" is definitive: committed sales cannot be undone, and a concurrent
+# twin that commits later must have held an *unsold* row in this snapshot (so
+# sold_out would be false and we take the full path). This is how ~99.8% of a
+# stampede -- the people who arrive after the tickets are gone -- is answered:
+# one round trip instead of four (M5).
 LOOKUP = """
-SELECT s.epoch, t.ticket_no, t.user_id, t.request_id
+SELECT s.epoch, t.ticket_no, t.user_id, t.request_id,
+       NOT EXISTS (SELECT 1 FROM tickets u WHERE u.user_id IS NULL) AS sold_out
 FROM sale s
 LEFT JOIN tickets t ON t.request_id = $1 OR t.user_id = $2
 WHERE s.id = 1
@@ -71,6 +79,9 @@ class ConstrainedAllocator:
             known = resolve_existing(rows, user_id, request_id)
             if known is not None:
                 return known
+            if rows[0]["sold_out"]:
+                self.counters["sold_out_fast"] += 1
+                return SoldOut(rows[0]["epoch"])
             try:
                 ticket_no = await self.claim(conn, user_id, request_id)
             except asyncpg.UniqueViolationError:

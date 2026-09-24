@@ -171,3 +171,15 @@ async def test_twins_racing_for_the_last_ticket_are_never_told_sold_out(pool, na
         assert not any(isinstance(r, SoldOut) for r in results), \
             f"{sum(isinstance(r, SoldOut) for r in results)}/30 twins told sold out"
         assert len({r.ticket_no for r in results}) == 1
+
+
+@pytest.mark.parametrize("name", SAFE)
+async def test_after_sellout_one_query_answers_new_buyers_but_not_holders(pool, name):
+    alloc = get(name)
+    await reset(pool, 1)
+    winner = await buy(pool, alloc, "w", "rw")
+    assert isinstance(await buy(pool, alloc, "late", "rl"), SoldOut)
+    assert alloc.counters["sold_out_fast"] == 1  # answered from the lookup alone
+    replay = await buy(pool, alloc, "w", "rw")  # the fast path must not swallow a holder's replay
+    assert isinstance(replay, Purchased) and replay.ticket_no == winner.ticket_no
+    assert alloc.counters["sold_out_fast"] == 1
