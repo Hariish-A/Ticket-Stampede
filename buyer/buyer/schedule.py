@@ -22,6 +22,8 @@ REPLAY_AFTER = "replay_after_sellout"  # same (user, request_id), after the sale
 NEW_RID = "same_user_new_rid"  # a winner retrying with a new request_id (D7: gets their ticket)
 RID_CONFLICT = "rid_conflict"  # a winner's request_id sent by a different user (must be 422)
 
+RETRY = "retry"  # a client retry of an earlier 503/timeout, same (user, request_id); not scheduled
+
 KINDS = (FRESH, DUP_CONCURRENT, DUP_SEQUENTIAL, REPLAY_AFTER, NEW_RID, RID_CONFLICT)
 
 

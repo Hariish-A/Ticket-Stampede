@@ -15,7 +15,7 @@ Design and trade-offs: [DECISIONS.md](DECISIONS.md) (written at M10). The workin
 ```bash
 git clone <this repo> && cd ticket-stampede
 
-./scripts/test.sh      # 28 buyer unit tests + 34 seller integration tests (each race x 3 safe strategies) against real Postgres
+./scripts/test.sh      # 36 buyer unit tests + 34 seller integration tests (each race x 3 safe strategies) against real Postgres
 ./scripts/c1.sh        # the same 51,000-request stampede against the naive seller (FAILs) and the safe one (PASSes)
 ./scripts/naive.sh     # just the naive seller
 ./scripts/calibrate.sh # the client's own ceiling against nginx returning canned responses (no seller in the loop)
@@ -24,6 +24,7 @@ git clone <this repo> && cd ticket-stampede
 ./scripts/profile.sh   # py-spy on the seller under load + pg_test_fsync
 ./scripts/hotrow.sh    # is the counter strategy's ceiling the disk flush? (commit flush on vs off)
 ./scripts/d10.sh       # buyer on the compose network vs through the host's published port
+./scripts/slowdb.sh    # Postgres +3 s per answer for 10 s mid-sale: baseline / seller fail-fast / client retry budget / both / closed-loop (~12 min)
 ```
 Each run prints a report and saves it to `results/<timestamp>-<scenario>/`:
 - `report.md` and `report.json`, which are committed;
@@ -46,6 +47,8 @@ Buyer options (`docker compose run --rm buyer run --help`):
 | `--max-inflight` | 2000 | cap on in-flight requests per process; waiting for a free slot is counted as client send lag, not hidden |
 | `--concurrency` | – | switch to **closed-loop** with this many in-flight requests (only for the C4 comparison) |
 | `--audit-interval` | 0.1 | seconds between live `/status` audits during the sale; 0 disables |
+| `--retry-unknown` / `--retry-rate` | 0 / 0 | retry 503s and timeouts up to N times with the same request_id; cap retries at R/s across the client (over-budget retries wait) |
+| `--stall-at` / `--stall-for` / `--stall-latency-ms` | – / 10 / 3000 | make Postgres slow via toxiproxy at t=X s for Y s (needs the seller started with `DB_HOST=toxiproxy DB_PORT=5433`) |
 
 The run has two phases. First the **stampede**, which is timed: it's sent on a fixed schedule and never waits for responses. Then the **probes**: replays, new request_ids and conflicts, aimed at the buyers who *actually* won or lost in phase 1. The probes are verified but not timed.
 
@@ -65,7 +68,8 @@ Clean up with `docker compose down -v`.
 | 200 | `{"status":"purchased","ticket_no":7,"epoch":3,"replayed":false,"existing":false}` | You hold ticket 7. `replayed`: this request_id was seen before. `existing`: this user already held a ticket. |
 | 409 | `{"status":"sold_out","epoch":3}` | Definitively sold out. |
 | 422 | `{"status":"request_id_conflict"}` | This request_id belongs to a different user. |
-| 503 | `{"status":"unknown","retry_with_same_request_id":true}` | The datastore didn't give a definite answer. Retrying with the same request_id is safe. |
+| 503 | `{"status":"unknown","retry_with_same_request_id":true}` | A statement was sent and no answer came back: **maybe** bought. Retrying with the same request_id is safe, and finds the ticket if it committed. |
+| 503 | `{"status":"not_attempted","retry":true}` | Nothing was sent to the database (no connection, or shed by `MAX_INFLIGHT`): **definitely not** bought. Retry later. |
 
 ## What the buyer checks
 | id | check |
@@ -86,4 +90,5 @@ Clean up with `docker compose down -v`.
 | M3: a buyer we can trust at scale | done |
 | M4: choosing the allocation strategy from evidence | done |
 | M5: how much load, and where is the bottleneck | done: [results/M5-bottleneck.md](results/M5-bottleneck.md) |
-| M6: the datastore goes slow for 10 s | next |
+| M6: the datastore goes slow for 10 s | done: [results/M6-slowdb.md](results/M6-slowdb.md) |
+| M7: kill the datastore mid-sale (TF2) | next |

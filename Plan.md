@@ -196,7 +196,7 @@ naive_sales(ticket_no int, user_id text, request_id text)       -- NO constraint
 | Microservices | Splitting the seller adds network calls where partial failures break the invariants | Reasoning |
 | `serializable` (SERIALIZABLE + retry) | Correct, but under contention nearly every buyer reads the same lowest ticket and aborts. Large sale: 24,927 retries, 241 gave up, only 1,472/5,000 sold by the end of the run, and 93% of requests got 503. | `results/*c2-summary.md` (M4) |
 | `counter` (single hot row) | Correct, but every claim queues on one row lock: about 250 claims/s. Large sale: 4,704/5,000 sold, 16,260 503s, p50 1 s. Acceptable at 100 tickets (sold out in 0.94 s vs 0.66 s). | `results/*c2-summary.md` (M4) |
-| Closed-loop client | Hides stalls (coordinated omission) | `results/` (M6) |
+| Closed-loop client | Hides stalls (coordinated omission): the same 10 s stall reads p99 65 ms closed-loop vs 9.9 s open-loop, because it sent 0–3 req/s during the stall | `results/M6-slowdb.md` |
 
 ## 4. Design decisions
 | # | Decision | Reason | Decided by | Date |
@@ -222,6 +222,10 @@ naive_sales(ticket_no int, user_id text, request_id text)       -- NO constraint
 | D19 | **`skiplocked` stays the default, now chosen on evidence (C2).** | 100 tickets: sold out in 0.66 s vs 0.94 (counter) vs 1.79 (serializable); fewest 503s. 5,000 tickets: sold all 5,000 in 5.4 s with p50 55 ms, while counter reached about 250 claims/s and serializable 1,472 tickets with 24,927 retries. Caveat: at the brief's 100 tickets the gap is modest. | AI proposal, confirmed by measurement (M4) | 2026-09-24 |
 | D20 | **Sold-out fast path**: the lookup query also tests `NOT EXISTS (unsold ticket)` in the same snapshot; if the buyer holds nothing and nothing is unsold, answer 409 from that one query | 99.8% of traffic is sold-out. 4 queries became 1: knee 1,000 → 1,500 req/s, p99 at 1,000/s 310 → 15 ms. Correct because committed sales are permanent, and a twin committing later held an unsold row in this snapshot. Covered by a new integration test × 3 strategies. | AI (M5), measured | 2026-09-24 |
 | D21 | Performance experiments discard a warm-up step and alternate the order of compared variants | A cold seller (pool growing 5 → 20, cold caches) has p99 of about 180–290 ms for its first seconds. It contaminated one sweep and one D10 comparison before this rule. | AI (M5) | 2026-09-24 |
+| D22 | Two kinds of 503: `not_attempted` (no connection obtained, nothing sent: known not bought) vs `unknown` (a statement was sent, no answer: maybe bought) | A buyer (and the verifier) can tell "definitely not" from "maybe". This was the M1 known weakness. | AI (M6) | 2026-09-24 |
+| D23 | The buyer retries unclear answers with the same request_id (`--retry-unknown`, exponential backoff + jitter), optionally under a **retry budget** (`--retry-rate`, token bucket; over-budget retries wait, never dropped). The in-flight slot covers the first attempt only. | Measured: without a budget, a 10 s stall became a metastable ~40 s+ outage (1,693 orphans, 6,856 buyers never answered). With a 200/s budget: 0 orphans, 0 unanswered, sold out 27.9 s vs 51.8 s. | AI (M6), measured | 2026-09-24 |
+| D24 | Seller fail-fast admission (`MAX_INFLIGHT`, a pure ASGI middleware that sheds /buy with an immediate 503) — **implemented, default OFF, pending the user's decision** | Measured: keeps the seller responsive through a retry storm (p99 back to ~300 ms after the stall; orphans 1,693 → 29). But at 64 it would also shed part of the brief's 1,000-request opening burst. | Pending (user) | 2026-09-24 |
+| D25 | "Mid-sale" slowdown uses a 15,000-ticket sale | With 100 tickets the sale ends in ~0.1 s, so a stall at t=5 s would only hit sold-out answers | AI (M6) | 2026-09-24 |
 | D10 ✔ | Confirmed by M5 measurement: the host port path adds about 1 ms p50, 1.5–4 ms p99 at 800 req/s | 3 alternating rounds | Measured (M5) | 2026-09-24 |
 
 ## 5. Testing and verification strategy
@@ -321,7 +325,7 @@ Rules:
 - The bottleneck is named, with at least two independent pieces of evidence.
 - The client-health data shows the client was not the limit.
 
-### M6: The datastore goes slow for 10 s (fault tolerance + C4) · ~2.0 h
+### M6: The datastore goes slow for 10 s (fault tolerance + C4) · ~2.0 h · ✅ DONE 2026-09-24 (results/M6-slowdb.md)
 **Build**
 - toxiproxy placed between the sellers and Postgres.
 - Timeouts (pool acquire and `command_timeout`).
@@ -409,6 +413,7 @@ The plan runs about 1 hour over the 15-hour budget. If we need to cut, M9 goes f
 
 
 ## 7. Decision changes (history)
+- 2026-09-24 (M6): the buyer's in-flight slot was held through a retry chain, then changed to cover the first attempt only (D23). Holding it let sleeping retries throttle new sends.
 - 2026-09-24 (M5): the sold-out answer moved from 4 queries (lookup, SKIP LOCKED claim, blocking claim, re-lookup) to 1 query (D20), after profiling. The full path remains for buyers who might still get a ticket.
 - 2026-09-24 (M3): the open-loop client's "no connection limit" (M1) was replaced by a per-process in-flight cap that counts waiting as send lag (D16). The unlimited version collapsed under overload during calibration.
 - 2026-09-24 (M2): the post-sale probes were changed from "pre-scheduled against the earliest requests" to "built from actual phase-1 outcomes" (D15). A C1 run showed that 0 of 20 probes had hit a winner.

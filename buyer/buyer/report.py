@@ -15,7 +15,14 @@ def render_markdown(meta: dict, stats: dict, checks: list[Check]) -> str:
         f"{meta.get('mode', 'open-loop')}, {meta.get('processes', 1)} processes · "
         f"{meta['tickets']} tickets · {stats['requests_sent']} requests "
         f"(burst {meta['burst']} at t=0, then {meta['rate']}/s) · seed {meta['seed']} · {meta['started_utc']}"
+        + (f" · client retries unclear answers up to {meta['retry_unknown']}x with the same request_id"
+           if meta.get("retry_unknown") else "")
     )
+    fault = meta.get("fault")
+    if fault:
+        lines += ["", f"**Fault injected:** {fault['kind']} {fault['detail']}, planned t={fault['planned_start_s']}"
+                      f"–{fault['planned_end_s']} s, actual t={_ms(fault['actual_start_s'])}–{_ms(fault['actual_end_s'])} s"
+                      + (f" — ERROR: {fault['error']}" if fault.get("error") else "")]
     lines += ["", "## Invariants", "", "| | Check | Verdict | Detail |", "|---|---|---|---|"]
     for c in checks:
         lines.append(f"| {c.id} | {c.name} | **{c.verdict}** | {c.detail} |")
@@ -61,6 +68,59 @@ def render_markdown(meta: dict, stats: dict, checks: list[Check]) -> str:
                      f"`{[f'{u:.0%}' for u in client['cpu_util_per_worker']]}` of one core; "
                      f"send lag p99 {_ms(stats['send_lag_ms']['p99'])} ms. "
                      f"A worker near 100% or a growing send lag means the client, not the seller, was the limit.")
+    lines += render_outcomes(stats)
+    lines += render_timeline(stats, meta.get("fault"))
+    return "\n".join(lines) + "\n"
+
+
+def render_outcomes(stats: dict) -> list[str]:
+    o = stats.get("outcomes")
+    if not o:
+        return []
+    return ["", "## What each buyer ended up with (after retries)", "",
+            f"{o['buyers']} buyers (user, request_id): final answers `{o['final']}`. "
+            f"{o['had_unclear_answer']} got at least one unclear answer (503 or no response); "
+            f"**{o['recovered_by_retry']} of those had in fact bought** (a retry with the same request_id got the "
+            f"ticket back as a replay: the earlier 'unknown' had committed); {o['bought_on_retry']} bought on a "
+            f"later retry; `still_unknown` = never got a definite answer.",
+            "", f"Answers by kind: `{stats.get('by_answer')}`"]
+
+
+def render_timeline(stats: dict, fault: dict | None = None) -> list[str]:
+    rows = stats.get("timeline") or []
+    if not rows:
+        return []
+    lo, hi = (fault["actual_start_s"], fault["actual_end_s"]) if fault and fault.get("actual_start_s") is not None else (None, None)
+    lines = ["", "## Timeline (1 s buckets, by scheduled send time)", "",
+             "| t s | sent | retries | purchased | sold out | unknown | not attempted | no response | p50 ms | p99 ms |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
+    for r in rows:
+        a = r["answers"]
+        mark = " ⚡" if lo is not None and lo - 1 < r["t_s"] < hi else ""
+        lines.append(f"| {r['t_s']:.0f}{mark} | {r['sent']} | {r['retries']} | {a.get('purchased', 0)} | {a.get('sold_out', 0)} "
+                     f"| {a.get('unknown', 0)} | {a.get('not_attempted', 0)} | {a.get('no_response', 0)} "
+                     f"| {_ms(r['p50_ms'])} | {_ms(r['p99_ms'])} |")
+    if lo is not None:
+        lines.append(f"\n⚡ = fault active (t={lo:.1f}–{hi:.1f} s)")
+    return lines
+
+
+def render_timelines_side_by_side(loaded: list[tuple[str, dict]]) -> str:
+    """Per-second p99 and sent count of several runs next to each other (C4)."""
+    per_run = [{r["t_s"]: r for r in rep["stats"].get("timeline", [])} for _, rep in loaded]
+    ts = sorted({t for m in per_run for t in m})
+    fault = next((rep["meta"].get("fault") for _, rep in loaded if rep["meta"].get("fault")), None)
+    head = " | ".join(f"{rep['meta'].get('mode')} sent | p99 ms" for _, rep in loaded)
+    lines = ["", "## Timelines side by side", "", f"| t s | {head} |", "|---|" + "---|---|" * len(loaded)]
+    for t in ts:
+        cells = []
+        for m in per_run:
+            r = m.get(t)
+            cells.append(f"{r['sent']} | {_ms(r['p99_ms'])}" if r else "0 | -")
+        mark = ""
+        if fault and fault.get("actual_start_s") is not None and fault["actual_start_s"] - 1 < t < fault["actual_end_s"]:
+            mark = " ⚡"
+        lines.append(f"| {t:.0f}{mark} | " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"
 
 

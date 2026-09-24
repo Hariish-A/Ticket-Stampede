@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import dataclasses
 import json
 import os
 import sys
@@ -9,7 +10,7 @@ from pathlib import Path
 
 import aiohttp
 
-from . import auditor, coordinator, report, runner, schedule, stats, verify
+from . import auditor, coordinator, faults, report, runner, schedule, stats, verify
 
 
 def _common(p: argparse.ArgumentParser, target_default: str) -> None:
@@ -45,6 +46,17 @@ def parse_args(argv=None) -> argparse.Namespace:
     r.add_argument("--no-reset", action="store_true", help="do not POST /reset before the run")
     r.add_argument("--expect-allocator", help="refuse to run unless the seller reports this allocator "
                                               "(guards against attacking the wrong seller)")
+    r.add_argument("--retry-unknown", type=int, default=0,
+                   help="retry a 503/timeout up to N times with the SAME request_id (exponential backoff + jitter)")
+    r.add_argument("--retry-rate", type=float, default=0,
+                   help="retry budget: at most this many retries/s across the whole client (0 = unlimited); "
+                        "over-budget retries wait, they are not dropped")
+    f = r.add_argument_group("fault injection (toxiproxy; the buyer switches it on/off on its own clock)")
+    f.add_argument("--stall-at", type=float, default=None, help="seconds after t0 to make the datastore slow")
+    f.add_argument("--stall-for", type=float, default=10.0, help="how long it stays slow, seconds")
+    f.add_argument("--stall-latency-ms", type=int, default=3000, help="added to every response from Postgres")
+    f.add_argument("--toxiproxy", default="http://toxiproxy:8474", help="toxiproxy API")
+    f.add_argument("--toxiproxy-proxy", default="postgres", help="name of the proxy in front of Postgres")
 
     c = sub.add_parser("calibrate", help="measure the client's own ceiling against a target that answers instantly")
     _common(c, "http://lb:8081")
@@ -58,6 +70,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     m.add_argument("reports", nargs="+", help="result directories (or report.json files)")
     m.add_argument("--title", default="Comparison")
     m.add_argument("--write", help="also write the table to this file")
+    m.add_argument("--timeline", action="store_true", help="append the runs' per-second timelines side by side")
     return p.parse_args(argv)
 
 
@@ -70,13 +83,24 @@ async def _post_reset(target: str, tickets: int) -> dict:
             return body
 
 
-async def _get_status(target: str) -> dict:
-    async with aiohttp.ClientSession(base_url=target) as s:
-        async with s.get("/status") as resp:
-            body = await resp.json(content_type=None)
-            if resp.status != 200:
-                raise SystemExit(f"/status failed: {resp.status} {body}")
-            return body
+async def _get_status(target: str, patience_s: float = 30.0) -> dict:
+    """The final /status, retried for a while: after a fault the seller (or its
+    database) may still be recovering, and verification needs one good read."""
+    deadline = time.monotonic() + patience_s
+    last = None
+    async with aiohttp.ClientSession(base_url=target, timeout=aiohttp.ClientTimeout(total=10)) as s:
+        while True:
+            try:
+                async with s.get("/status") as resp:
+                    body = await resp.json(content_type=None)
+                    if resp.status == 200:
+                        return body
+                    last = f"{resp.status} {body}"
+            except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
+                last = repr(exc)
+            if time.monotonic() > deadline:
+                raise SystemExit(f"/status failed for {patience_s:.0f}s: {last}")
+            await asyncio.sleep(1)
 
 
 async def _get_metrics(target: str) -> dict:
@@ -110,12 +134,22 @@ async def run(args: argparse.Namespace) -> int:
     plan = schedule.build(spec)
     mode = f"closed-loop x{args.concurrency}" if args.concurrency else "open-loop"
     print(f"[buyer] phase 1: {len(plan)} requests, {mode}, {args.processes} processes -> {args.target}", file=sys.stderr)
+    t0 = time.perf_counter() + coordinator.SPAWN_LEAD_S
+    fault_task = None
+    if args.stall_at is not None:
+        fault_task = asyncio.create_task(faults.latency_window(
+            args.toxiproxy, args.toxiproxy_proxy, t0, args.stall_at, args.stall_for, args.stall_latency_ms))
     stampede, workers, t0 = await coordinator.run_phase(args.target, plan, args.processes, args.timeout,
-                                                        args.concurrency, args.max_inflight)
+                                                        args.concurrency, args.max_inflight,
+                                                        retries=args.retry_unknown, retry_rate=args.retry_rate, t0=t0)
+    fault = await fault_task if fault_task else None
+    if fault:
+        print(f"[buyer] fault: {fault}", file=sys.stderr)
 
     probes_plan = schedule.build_probes(spec, stampede)
     print(f"[buyer] phase 2: {len(probes_plan)} probes aimed at actual winners/losers", file=sys.stderr)
-    probes = await runner.run_open_loop(args.target, probes_plan, time.perf_counter() + 0.1, args.timeout)
+    probes = await runner.run_open_loop(args.target, probes_plan, time.perf_counter() + 0.1, args.timeout,
+                                        retries=args.retry_unknown)
     attempts = stampede + probes
 
     stop_audit.set()
@@ -140,6 +174,9 @@ async def run(args: argparse.Namespace) -> int:
         "rate": args.rate,
         "seed": args.seed,
         "started_utc": started.isoformat(timespec="seconds"),
+        "retry_unknown": args.retry_unknown,
+        "retry_rate": args.retry_rate,
+        "fault": dataclasses.asdict(fault) if fault else None,
         "args": vars(args),
     }
     out_dir = Path(args.out) / f"{started:%Y%m%dT%H%M%SZ}-{args.scenario}"
@@ -199,6 +236,8 @@ def compare(args: argparse.Namespace) -> int:
         path = path / "report.json" if path.is_dir() else path
         loaded.append((path.parent.name, json.loads(path.read_text())))
     md = report.render_comparison(args.title, loaded)
+    if args.timeline:
+        md += report.render_timelines_side_by_side(loaded)
     print(md)
     if args.write:
         Path(args.write).write_text(md)

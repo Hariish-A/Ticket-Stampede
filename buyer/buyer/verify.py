@@ -14,10 +14,10 @@ from dataclasses import dataclass, field
 from typing import Iterable
 
 from .runner import Attempt
-from .schedule import DUP_CONCURRENT, DUP_SEQUENTIAL, FRESH, REPLAY_AFTER, RID_CONFLICT
+from .schedule import DUP_CONCURRENT, DUP_SEQUENTIAL, FRESH, REPLAY_AFTER, RETRY, RID_CONFLICT
 
 EXAMPLES = 5
-REPEATS = (DUP_CONCURRENT, DUP_SEQUENTIAL, REPLAY_AFTER)
+REPEATS = (DUP_CONCURRENT, DUP_SEQUENTIAL, REPLAY_AFTER, RETRY)
 
 
 @dataclass
@@ -111,13 +111,27 @@ def verify(status: dict, attempts: Iterable[Attempt], total: int, audit=None) ->
     # A request_id is "bound" once it has been confirmed a ticket. Reusing a bound
     # id as another user must be refused; an id that only ever got "sold out"
     # holds nothing, so there is nothing to conflict with.
-    bound = {a.request_id: a.user_id for a in confirmed if a.kind != RID_CONFLICT}
-    conflicts = [a for a in attempts if a.kind == RID_CONFLICT and bound.get(a.request_id, a.user_id) != a.user_id]
-    leaked = [a for a in conflicts if a.status != 422]
-    checks.append(Check("U2", "A winner's request_id reused by another user is rejected (422)",
-                        not leaked if conflicts else None,
-                        f"{len(leaked)}/{len(conflicts)} conflicting requests were not rejected" if leaked
-                        else f"{len(conflicts)} conflicting requests, all rejected",
+    # The violation is the conflicting user being *given a ticket* (200). A 503 or
+    # timeout is no answer at all -- neither acceptance nor rejection -- so it is
+    # counted as undecided, not as a failure. (The first version failed U2 on shed
+    # 503s under M6 load shedding.) Retries of a conflict probe count too.
+    probe_keys = {(a.user_id, a.request_id) for a in attempts if a.kind == RID_CONFLICT}
+    # Owner of each request_id, from confirmations that are not the probes' own
+    # (including their retries -- otherwise a leaked ticket would rebind the id).
+    bound = {a.request_id: a.user_id for a in confirmed if (a.user_id, a.request_id) not in probe_keys}
+    conflict_keys = {(u, r) for u, r in probe_keys if bound.get(r, u) != u}
+    conflict_attempts = [a for a in attempts if (a.user_id, a.request_id) in conflict_keys]
+    leaked = [a for a in conflict_attempts if a.status == 200]
+    rejected = {(a.user_id, a.request_id) for a in conflict_attempts if a.status == 422}
+    other_definite = {(a.user_id, a.request_id) for a in conflict_attempts
+                      if a.status not in (0, 200, 422, 503)} - rejected
+    undecided = len(conflict_keys - rejected - other_definite - {(a.user_id, a.request_id) for a in leaked})
+    checks.append(Check("U2", "A winner's request_id reused by another user is never given a ticket (422)",
+                        not leaked if conflict_keys else None,
+                        f"{len(leaked)} conflicting requests were given a ticket" if leaked
+                        else f"{len(conflict_keys)} conflicting requests: {len(rejected)} rejected (422), "
+                             f"{len(other_definite)} refused otherwise (e.g. 409), "
+                             f"{undecided} never got a definite answer (503/timeout), 0 given a ticket",
                         [{"request_id": a.request_id, "user_id": a.user_id, "status": a.status, "ticket_no": a.ticket_no}
                          for a in leaked[:EXAMPLES]]))
 

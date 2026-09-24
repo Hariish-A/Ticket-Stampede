@@ -135,3 +135,21 @@ def test_holder_new_request_id_told_sold_out_fails_u5():
     status, attempts = clean()
     attempts.append(sold_out("b", "rb-b", kind=NEW_RID))
     assert verdicts(status, attempts)["U5"] is False
+
+
+def test_shed_conflict_probe_is_undecided_not_a_failure():
+    # Under load shedding a conflict probe may only ever get 503: not a violation.
+    status, attempts = clean()
+    attempts.append(Attempt(kind=RID_CONFLICT, user_id="xb", request_id="rb", sched=0, sent=0, done=0.01, status=503))
+    checks = {c.id: c for c in verify(status, attempts, TOTAL)}
+    assert checks["U2"].passed is True
+    assert "1 never got a definite answer" in checks["U2"].detail
+
+
+def test_conflict_given_a_ticket_on_retry_still_fails_u2():
+    from buyer.schedule import RETRY
+    status = status_of([("a", 1), ("xa", 2)])
+    attempts = [ok("a", "ra", 1),
+                Attempt(kind=RID_CONFLICT, user_id="xa", request_id="ra", sched=0, sent=0, done=0.01, status=503),
+                ok("xa", "ra", 2, kind=RETRY)]
+    assert verdicts(status, attempts)["U2"] is False

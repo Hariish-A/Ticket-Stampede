@@ -4,16 +4,16 @@
 > Append new entries at the bottom of the log. Keep "Current state" and "Next up" current.
 
 ## Current state
-- **Phase:** M5 is done (load limit and bottleneck, with evidence: `results/M5-bottleneck.md`). M6 is next, when the user says "start M6".
+- **Phase:** M6 is done (the datastore goes slow for 10 s: `results/M6-slowdb.md`). M7 is next, when the user says "start M7".
 - **Runs?**
-  - `./scripts/test.sh`: 28 buyer unit + 34 seller integration tests, all passing.
-  - New scripts: `sweep.sh`, `profile.sh`, `hotrow.sh`, `d10.sh`.
-- **Headline:** one seller instance has its knee at ~1,500 req/s and a ceiling of ~1,400–1,500 req/s. The bottleneck is the seller process's one CPU core; Postgres is mostly idle.
+  - `./scripts/test.sh`: 36 buyer unit + 34 seller integration tests, all passing.
+  - New: `./scripts/slowdb.sh` (5 variants).
+- **Headline:** the invariants hold through the stall. The real damage is a retry storm: a metastable outage, 1,693 orphans, 6,856 buyers never answered. A client retry budget eliminates it; seller fail-fast keeps the seller responsive.
 - **Repo:** https://github.com/Hariish-A/Ticket-Stampede (private), branch `main`.
 
 ## Next up
-1. M6: toxiproxy between sellers and Postgres, the 10 s slowdown mid-sale, open-loop vs closed-loop client against the same stall (C4), 503 retries with the same request_id, orphan counting and recovery.
-   - Include the M1 note: separate "not attempted" (pool-acquire timeout) from "unknown outcome".
+1. The user decides D24: turn seller fail-fast on by default, and at what limit? (It also sheds part of the brief's opening burst.)
+2. M7: kill Postgres mid-sale and restart it (TF2). Use `--retry-unknown` plus `--retry-rate` in the buyer. Check that the postgres restart policy doesn't auto-restart a *killed* postgres (M3 note). Watch the cold start (M5).
 
 ## Known weaknesses / open issues
 _(These feed into the "where it breaks" section of DECISIONS.md.)_
@@ -25,9 +25,12 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - (M3) **Client ceiling depends on the machine, and scaling is sub-linear**: 4.8k / 8.2k / 12.7k / 20.7k req/s at 1 / 2 / 4 / 8 processes, on a 16-CPU Docker Desktop VM shared with nginx and the seller. Every worker was at about 100% CPU and nginx peaked at 155%, so the limit is the client's Python. The stampede runs offer about 1k req/s, far below the ceiling.
 - (M3) **The client reuses keep-alive connections; real buyers wouldn't.** 50k real users means 50k separate TCP connections and TLS handshakes. Our workers reuse pooled connections, which makes the seller's job easier than reality. Deliberate: one connection per request would exhaust the client's ephemeral ports (about 28k) and measure the client's connect cost instead.
 - (M3) **The live auditor adds load**: about 10 `/status` requests/s on the seller during the sale. Small, but non-zero.
-- (M1) **A pool-acquire timeout answers 503 "unknown", but the outcome is actually known**: the request never reached the database, so nothing happened. M6 should separate "not attempted, safe to retry" from "unknown outcome".
+- (M1 → fixed in M6, D22) **A pool-acquire timeout answered 503 "unknown", but the outcome is actually known**: the request never reached the database, so nothing happened. M6 should separate "not attempted, safe to retry" from "unknown outcome".
 - (M2) **The safe seller also saturates at the opening burst.** In the C1 skiplocked run, 1,479 of 51k requests got 503 (all `TimeoutError`: waiting more than 1 s for one of 20 pool connections). p99 was 1.5 s and max 2.4 s. No invariant was affected, because those requests never reached the database. M5 will find the bottleneck; candidates are single-process Python CPU, pool size, and the sold-out path's 4 queries (lookup, skip claim, blocking claim, re-lookup).
 - (M2) **/reset during live traffic isn't safe for the epoch.** A buy whose statement snapshot predates a concurrent TRUNCATE can see an empty `tickets` table and answer a spurious "sold out" for the new epoch. U4 and U3 would flag it. Resetting mid-sale is outside the brief; not handled.
+- (M6) **Retry storm → metastable failure.** Without a client retry budget, a 10 s datastore stall keeps one seller overloaded for 40 s+ after the stall ends (offered ~3k req/s vs ~1.5k capacity). Real browsers have no retry budget, which is why seller-side shedding (D24) matters.
+- (M6) **Orphans need retries to be recovered.** Committed-but-unconfirmed tickets are only discovered when the buyer retries with the same request_id. A buyer who gives up keeps an orphan they don't know about (1,693 in the baseline). A real system would need a "my tickets" lookup, or notification by user_id.
+- (M6) **The fail-fast limit (64) and the retry budget (200/s) are reasoned from M5's capacity, not swept.**
 - (M5) **Cold start**: a freshly (re)started seller has p99 of about 180–290 ms for its first seconds (pool grows 5 → 20, cold caches). This matters after M7's restarts and any deploy. Remedy (not applied): `POOL_MIN=POOL_MAX` plus a warm-up before taking traffic.
 - (M5) **The profiler can't see inside uvloop.** Much of the py-spy time lands in `asyncio/runners.py:run` (uvloop's C code), and `py-spy --native` fails on this stack ("Failed to merge native and python frames"). The bottleneck conclusion rests on the other evidence (CPU, pg_stat_activity, Server-Timing, the fast-path intervention).
 - (M5) **One Python process per instance is the ceiling (~1.5k req/s).** The next lever is more processes (M8); the framework's per-request cost is the largest remaining share.
@@ -37,7 +40,7 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - (M1, original note) There were 6–8k 503s per run, and p90 latency was about 1 s, which matches the 1 s acquire timeout. Hypothesis: every buy does `UPDATE sale` on the single row, and each of those commits waits for a WAL fsync while holding the row lock. So buys queue behind fsync latency (the "hot row" problem). The C2 `counter` strategy would have the same problem. Unverified until measured.
 
 ## Open questions for the user
-- None.
+- D24: enable seller fail-fast admission by default? The measured trade-off: stall resilience (orphans 1,693 → 29, recovery right after the stall) vs shedding part of the brief's 1,000-request opening burst at a limit of 64. Options: keep off; on with a higher limit (e.g. 256, not measured); or shed at nginx instead (M8).
 
 ---
 
@@ -200,3 +203,20 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
   3. D10 single runs (direct always first, right after `up`) showed direct p99 280 ms: a cold start mistaken for a path effect. Fixed with a warm-up and 3 alternating rounds.
   4. A Python edit script with a syntax error silently applied none of the fixes, so attempt 2 repeated both flaws. Lesson: edit scripts with the Edit tool, or a Python file written with the Write tool; `bash -n` before running.
 - Tried and failed: `py-spy --native` (blocking mode needed; then "Failed to merge native and python frames" on uvloop). Stated as a limit in the bottleneck note.
+
+### 2026-09-24 — Session 4 (continued): M6, the datastore goes slow for 10 s
+- Built:
+  - toxiproxy service (sellers route through it when `DB_HOST=toxiproxy`); `buyer.faults` adds and removes a latency toxic on the buyer's own clock.
+  - Seller: `not_attempted` vs `unknown` 503s (D22); a definite answer is returned even if releasing the connection fails; throttled failure logs; `Admission` fail-fast ASGI middleware (`MAX_INFLIGHT`, off by default, D24).
+  - Buyer: retries with the same request_id, plus a retry budget (D23); per-buyer outcomes (recovered by retry, bought on retry, turned away (known), still unknown); per-second timeline; `compare --timeline`.
+  - `scripts/slowdb.sh` with 5 variants.
+- Results: `results/M6-slowdb.md`. All variants pass every invariant.
+  - Baseline: metastable outage, 1,693 orphans, 6,856 unanswered.
+  - Retry budget: 0 / 0, sold out 27.9 s vs 51.8 s.
+  - Fail-fast: seller responsive, orphans 29, but 20,958 turned away by the storm.
+  - Closed-loop (C4): p99 65 ms vs 9.9 s for the same stall.
+- **Mistakes caught (runs discarded with reasons):**
+  1. The client held in-flight slots through retry backoff, throttling its own new sends (the client flattering the seller).
+  2. The outcome classification lumped known-not-bought (`not_attempted` only) with unknown.
+  3. U2 counted shed 503s as acceptances. While fixing it, a new test found that a leaked ticket on a retry would rebind the request_id and hide the leak; fixed.
+- The AI doubted that server-side shedding would help, because M5 showed the web stack dominates per-request cost. The measurement disagreed: shedding in ASGI, before FastAPI, is cheap (4.5k req/s answered). Recorded as such.

@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from . import allocators, config, db, sale
+from .admission import Admission
 from .allocators.constrained import RetriesExhausted
 from .sale import Purchased, RequestIdConflict, SoldOut
 
@@ -32,6 +33,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Ticket Stampede seller", lifespan=lifespan)
+admission_stats: dict = {}
+app.add_middleware(Admission, limit=settings.max_inflight, stats=admission_stats)
 
 
 class ResetIn(BaseModel):
@@ -44,13 +47,38 @@ class BuyIn(BaseModel):
 
 
 def unknown_outcome() -> JSONResponse:
-    # We cannot tell whether the purchase committed. Saying "sold out" or
-    # "failed" here could be a lie; the request_id makes a retry safe.
+    # A query was sent and no answer came back: the purchase may or may not have
+    # committed. Saying "sold out" or "failed" here could be a lie; the
+    # request_id makes a retry safe, and the retry will find it if it committed.
     return JSONResponse(
         status_code=503,
         content={"status": "unknown", "retry_with_same_request_id": True},
         headers={"Retry-After": "1"},
     )
+
+
+def not_attempted() -> JSONResponse:
+    # No database connection was obtained, so nothing was sent: the outcome is
+    # known -- nothing happened. Still a 503 (retry later), but a client can
+    # tell "definitely not bought" apart from "maybe bought".
+    return JSONResponse(
+        status_code=503,
+        content={"status": "not_attempted", "retry": True},
+        headers={"Retry-After": "1"},
+    )
+
+
+_failures = 0
+
+
+def log_failure(what: str, exc: BaseException) -> None:
+    """A stalled datastore fails thousands of requests a second; logging each
+    would spend the CPU that M5 showed is the bottleneck. Log the first 20,
+    then 1 in 500."""
+    global _failures
+    _failures += 1
+    if _failures <= 20 or _failures % 500 == 0:
+        log.warning("%s failed (#%d): %r", what, _failures, exc)
 
 
 @app.get("/health")
@@ -62,7 +90,8 @@ async def health():
 async def metrics():
     """What the allocator had to do (retries, fallbacks), since this process started.
     The buyer reads it before and after a run and reports the difference."""
-    return {"allocator": settings.allocator, "counters": dict(app.state.allocator.counters)}
+    return {"allocator": settings.allocator, "max_inflight": settings.max_inflight,
+            "counters": {**app.state.allocator.counters, **admission_stats}}
 
 
 @app.post("/reset")
@@ -71,7 +100,7 @@ async def reset(body: ResetIn):
         async with app.state.pool.acquire(timeout=settings.pool_acquire_timeout) as conn:
             epoch = await sale.reset(conn, body.count)
     except DB_ERRORS as exc:
-        log.warning("reset failed: %r", exc)
+        log_failure("reset", exc)
         return unknown_outcome()
     return {"status": "reset", "epoch": epoch, "total": body.count, "allocator": settings.allocator}
 
@@ -103,10 +132,16 @@ async def buy(body: BuyIn):
             result = await app.state.allocator.buy(conn, body.user_id, body.request_id)
             allocated = time.perf_counter()
     except DB_ERRORS as exc:
-        log.warning("buy failed: %r", exc)
-        resp = unknown_outcome()
-        resp.headers.update(server_timing(start, acquired, allocated))
-        return resp
+        log_failure("buy", exc)
+        if allocated is None:
+            # Which 503 depends on how far we got: no connection means nothing
+            # was sent (known: not bought); a connection means a statement may
+            # have committed without us hearing back (unknown).
+            resp = not_attempted() if acquired is None else unknown_outcome()
+            resp.headers.update(server_timing(start, acquired, allocated))
+            return resp
+        # The allocator already returned a definite result and only releasing the
+        # connection failed: the answer is known, so give it rather than a 503.
 
     match result:
         case Purchased():
@@ -131,6 +166,6 @@ async def status():
         async with app.state.pool.acquire(timeout=settings.pool_acquire_timeout) as conn:
             snapshot = await app.state.allocator.status(conn)
     except DB_ERRORS as exc:
-        log.warning("status failed: %r", exc)
+        log_failure("status", exc)
         return unknown_outcome()
     return {**snapshot, "allocator": settings.allocator}

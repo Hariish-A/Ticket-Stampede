@@ -5,15 +5,20 @@ x-seller: &seller
     context: ./seller
     target: runtime
   environment:
-    DATABASE_URL: postgresql://tickets:tickets@postgres:5432/tickets
+    # DB_HOST=toxiproxy DB_PORT=5433 routes the seller through the fault injector
+    # (scripts/slowdb.sh); by default it talks to postgres directly.
+    DATABASE_URL: postgresql://tickets:tickets@${DB_HOST:-postgres}:${DB_PORT:-5432}/tickets
     ALLOCATOR: ${ALLOCATOR:-skiplocked}
     POOL_MIN: ${POOL_MIN:-5}
     POOL_MAX: ${POOL_MAX:-20}
     POOL_ACQUIRE_TIMEOUT: ${POOL_ACQUIRE_TIMEOUT:-1.0}
     COMMAND_TIMEOUT: ${COMMAND_TIMEOUT:-2.0}
+    MAX_INFLIGHT: ${MAX_INFLIGHT:-0}
   depends_on:
     postgres:
       condition: service_healthy
+    toxiproxy:
+      condition: service_started
   restart: unless-stopped
   cap_add:
     - SYS_PTRACE  # lets py-spy attach to the server process (scripts/profile.sh)
@@ -38,6 +43,18 @@ services:
       interval: 1s
       timeout: 2s
       retries: 30
+
+  # Fault injector between the sellers and Postgres (M6): the buyer adds and
+  # removes toxics through its API on :8474 to make the datastore slow on cue.
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    command: ["-host=0.0.0.0", "-config=/config/toxiproxy.json"]
+    volumes:
+      - ./infra/toxiproxy.json:/config/toxiproxy.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 
   seller1:
     <<: *seller
