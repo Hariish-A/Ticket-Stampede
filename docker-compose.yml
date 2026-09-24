@@ -35,7 +35,7 @@ services:
   seller1:
     <<: *seller
     ports:
-      - "${SELLER1_PORT:-18001}:8000"  # host port only for manual curl; the buyer uses the compose network
+      - "${SELLER1_PORT:-8001}:8000"  # host port only for manual curl; the buyer uses the compose network
 
   # The load client. Not started by `docker compose up`; run it with
   # `docker compose run --rm buyer run ...`. It lives on the compose network so

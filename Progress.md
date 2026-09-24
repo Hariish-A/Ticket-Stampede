@@ -7,11 +7,10 @@
 - **Phase:** M1 is done (the naive seller gets caught). M2 is next, when the user says "start M2".
 - **Runs?** Yes: `./scripts/test.sh` (17 unit tests pass) and `./scripts/naive.sh` (the naive seller FAILs I1–I4 in 3 out of 3 runs at 50k requests).
 - **Tests:** 17 pytest unit tests (verifier + schedule), run inside the buyer image.
-- **Repo:** git initialised locally, M1 committed. The GitHub push is blocked: `gh` isn't installed, and a private repo has to be created (waiting on the user).
+- **Repo:** https://github.com/Hariish-A/Ticket-Stampede (private), branch `main`.
 
 ## Next up
-1. The user creates the private GitHub repo (or authenticates `gh`), then push.
-2. M2: the `skiplocked` allocator, idempotency lookup, D7, 422, the confirm-before-409 check, a single-snapshot /status, seller integration tests, `scripts/c1.sh`.
+1. M2: the `skiplocked` allocator, idempotency lookup, D7, 422, the confirm-before-409 check, a single-snapshot /status, seller integration tests, `scripts/c1.sh`.
 
 ## Known weaknesses / open issues
 _(These feed into the "where it breaks" section of DECISIONS.md.)_
@@ -24,7 +23,7 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - (M1, to investigate in M4/M5) **The naive seller handles only about 200–400 buys/s**. There were 6–8k 503s per run, and p90 latency was about 1 s, which matches the 1 s acquire timeout. Hypothesis: every buy does `UPDATE sale` on the single row, and each of those commits waits for a WAL fsync while holding the row lock. So buys queue behind fsync latency (the "hot row" problem). The C2 `counter` strategy would have the same problem. Unverified until measured.
 
 ## Open questions for the user
-- GitHub: create an empty **private** repo and send the URL, or run `gh auth login` once `gh` is installed. I'll push M1 straight after.
+- None.
 
 ---
 
@@ -119,3 +118,11 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
   - System Python (C:\Python312) isn't writable, so tests run inside the container.
   - Host port 8001 was already taken, so seller1 now maps to 18001 (`SELLER1_PORT`).
 - New known weaknesses are listed above (client lag during the burst, 503 on acquire timeout, the naive hot-row slowness).
+
+### 2026-09-24 — Session 4 (continued): port 8001 and the GitHub push
+- Port 8001 was held by another project's container (`sourcerer_backend-api-1`, restart policy unless-stopped), not by this project.
+  - The process listening on the port was `com.docker.backend`, i.e. Docker Desktop itself, so killing that PID would have killed Docker Desktop.
+  - Stopped that container instead, at the user's request. Undo with `docker start sourcerer_backend-api-1`.
+- seller1 is back on host port 8001 (the `SELLER1_PORT` override is kept). Checked with curl: reset, buy and status all work.
+- Added `.gitattributes` (LF line endings) and exec bits on the scripts, so a Windows clean checkout doesn't break the bash scripts. A fresh clone passed `scripts/test.sh`.
+- Added the remote https://github.com/Hariish-A/Ticket-Stampede and pushed `main`.

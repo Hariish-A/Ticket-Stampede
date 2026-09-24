@@ -35,11 +35,11 @@ Buyer options (`docker compose run --rm buyer run --help`):
 | `--new-rid` / `--rid-conflict` | 20 / 20 | same user with a new request_id; same request_id from a different user |
 | `--seed` | 1 | makes the schedule reproducible |
 
-Manual poking: the seller is on `http://localhost:18001` (change it with `SELLER1_PORT`).
+Manual poking: the seller is on `http://localhost:8001` (if that port is busy, set `SELLER1_PORT`, e.g. `SELLER1_PORT=18001 docker compose up -d`).
 ```bash
-curl -X POST localhost:18001/reset -H 'content-type: application/json' -d '{"count":100}'
-curl -X POST localhost:18001/buy   -H 'content-type: application/json' -d '{"user_id":"alice","request_id":"r1"}'
-curl localhost:18001/status
+curl -X POST localhost:8001/reset -H 'content-type: application/json' -d '{"count":100}'
+curl -X POST localhost:8001/buy   -H 'content-type: application/json' -d '{"user_id":"alice","request_id":"r1"}'
+curl localhost:8001/status
 ```
 Clean up with `docker compose down -v`.
 
