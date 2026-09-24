@@ -2,18 +2,22 @@
 # M2 demo (C1): the identical attack -- same schedule, same seed -- against the
 # naive seller and then the safe one. Expected: naive FAILs, skiplocked PASSes.
 #   ./scripts/c1.sh [extra buyer args...]
+#   TOPOLOGY=tf1 ./scripts/c1.sh     # the same, against 3 sellers behind nginx (M8)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export MSYS_NO_PATHCONV=1
+source scripts/lib.sh
 
-docker compose build -q seller1 buyer
+docker compose build -q $SELLERS buyer
+suffix=""; [ "$TOPOLOGY" = tf1 ] && suffix="-tf1"
 
 run() {  # run <allocator>; prints the buyer report, returns the buyer's exit code
-  ALLOCATOR="$1" docker compose up -d --wait seller1
+  start_sellers ALLOCATOR="$1"
   # --no-deps: without it, `compose run` re-reads the file with ALLOCATOR unset and
-  # silently recreates seller1 on the default allocator (this happened; see Progress.md).
+  # silently recreates the seller on the default allocator (this happened; see Progress.md).
   # --expect-allocator makes the buyer refuse to attack the wrong seller at all.
-  docker compose run --rm --no-deps buyer run --target http://seller1:8000     --expect-allocator "$1" --scenario "c1-$1" "${@:2}"
+  docker compose run --rm --no-deps buyer run --target "$TARGET" \
+    --expect-allocator "$1" --scenario "c1-$1$suffix" "${@:2}"
 }
 
 set +e

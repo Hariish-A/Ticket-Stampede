@@ -25,12 +25,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export MSYS_NO_PATHCONV=1
+source scripts/lib.sh   # TOPOLOGY=tf1: the same, against 3 sellers behind nginx (M8)
+suffix=""; [ "$TOPOLOGY" = tf1 ] && suffix="-tf1"
 
 VARIANTS=${VARIANTS:-"baseline failfast budget both closed"}
 COMMON=(--tickets 15000 --requests 40000 --burst 1000 --rate 1000
         --stall-at 5 --stall-for 10 --stall-latency-ms 3000 --retry-unknown 6)
 
-docker compose build -q seller1 buyer
+docker compose build -q $SELLERS buyer
+docker compose up -d --wait toxiproxy 2>&1 | grep -v "^ Container" || true
 runs=()
 for v in $VARIANTS; do
   inflight=0; extra=()
@@ -42,19 +45,18 @@ for v in $VARIANTS; do
     closed)   extra=(--concurrency 4) ;;
     *) echo "unknown variant $v" >&2; exit 2 ;;
   esac
-  DB_HOST=toxiproxy DB_PORT=5433 ALLOCATOR=skiplocked MAX_INFLIGHT=$inflight \
-    docker compose up -d --wait toxiproxy seller1 2>&1 | grep -v "^ Container" || true
-  echo ">>> $v (MAX_INFLIGHT=$inflight ${extra[*]:-})"
-  docker compose run --rm --no-deps buyer run --target http://seller1:8000 --expect-allocator skiplocked \
-    --scenario "slowdb-$v" "${COMMON[@]}" "${extra[@]}" "$@" \
+  start_sellers DB_HOST=toxiproxy DB_PORT=5433 ALLOCATOR=skiplocked MAX_INFLIGHT=$inflight
+  echo ">>> $v (MAX_INFLIGHT=$inflight per instance ${extra[*]:-})"
+  docker compose run --rm --no-deps buyer run --target "$TARGET" --expect-allocator skiplocked \
+    --scenario "slowdb$suffix-$v" "${COMMON[@]}" "${extra[@]}" "$@" \
     | grep -E "^\| (I[1-4]|A3) |Fault injected|buyers \(user" || true
-  runs+=("$(ls -td results/*-slowdb-"$v" | head -1)")
+  runs+=("$(ls -td results/*-slowdb"$suffix"-"$v" | head -1)")
 done
 
-# Put seller1 back on the direct connection, unprotected, for the other scenarios.
-ALLOCATOR=skiplocked docker compose up -d --wait seller1 2>&1 | grep -v "^ Container" || true
+# Put the sellers back on the direct connection, unprotected, for the other scenarios.
+start_sellers ALLOCATOR=skiplocked
 
-summary="results/$(date -u +%Y%m%dT%H%M%SZ)-slowdb-summary.md"
+summary="results/$(date -u +%Y%m%dT%H%M%SZ)-slowdb$suffix-summary.md"
 docker compose run --rm --no-deps buyer compare "${runs[@]}" --timeline \
-  --title "M6: Postgres +3 s per answer for 10 s mid-sale (15,000-ticket sale)" --write "$summary"
+  --title "Postgres +3 s per answer for 10 s mid-sale (15,000-ticket sale; topology: $TOPOLOGY)" --write "$summary"
 echo "summary: $summary"

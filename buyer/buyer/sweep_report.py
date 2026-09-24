@@ -21,18 +21,31 @@ def _ms(v) -> str:
     return "-" if v is None else f"{v:.1f}"
 
 
-def cpu_by_container(path: Path) -> dict[str, tuple[float, float]]:
-    """{container: (mean %, max %)} where 100% = one core."""
-    samples = defaultdict(list)
+def cpu_by_group(path: Path) -> dict[str, tuple[float, float]]:
+    """{group: (mean %, max %)} where 100% = one core. Groups: "sellers" (all
+    seller instances summed per sample -- one for M5, three for M8), "postgres",
+    "lb" (nginx). Samples come from one `docker stats` pass per timestamp."""
+    per_pass: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     if path.exists():
         for line in path.read_text().splitlines():
             parts = line.split()
-            if len(parts) >= 3 and parts[2].endswith("%"):
-                try:
-                    samples[parts[1]].append(float(parts[2].rstrip("%")))
-                except ValueError:
-                    pass
-    return {c: (sum(v) / len(v), max(v)) for c, v in samples.items() if v}
+            if len(parts) < 3 or not parts[2].endswith("%"):
+                continue
+            try:
+                pct = float(parts[2].rstrip("%"))
+            except ValueError:
+                continue
+            name = parts[1]
+            group = ("sellers" if "seller" in name and "tests" not in name else
+                     "postgres" if "postgres" in name else "lb" if "-lb-" in name else None)
+            if group:
+                per_pass[parts[0]][group] += pct
+    out = {}
+    for group in ("sellers", "postgres", "lb"):
+        v = [p[group] for p in per_pass.values() if group in p]
+        if v:
+            out[group] = (sum(v) / len(v), max(v))
+    return out
 
 
 def pg_waits(path: Path) -> tuple[float, float, list[tuple[str, float]]]:
@@ -63,12 +76,12 @@ def main(argv: list[str]) -> int:
         r = json.loads((d / "report.json").read_text())
         rate = int(r["meta"]["rate"])
         st = r["stats"]
-        cpu = cpu_by_container(sweep_dir / f"cpu-{rate}.txt")
-        seller = next((v for k, v in cpu.items() if "seller1" in k), (0.0, 0.0))
-        pg = next((v for k, v in cpu.items() if "postgres" in k), (0.0, 0.0))
+        cpu = cpu_by_group(sweep_dir / f"cpu-{rate}.txt")
+        seller, pg, lb = (cpu.get(g, (0.0, 0.0)) for g in ("sellers", "postgres", "lb"))
         active, idle, waits = pg_waits(sweep_dir / f"pgwait-{rate}.txt")
         failed = [c["id"] for c in r["checks"] if c["verdict"] == "FAIL"]
-        rows.append(dict(rate=rate, st=st, seller=seller, pg=pg, active=active, idle=idle, waits=waits, failed=failed))
+        rows.append(dict(rate=rate, st=st, seller=seller, pg=pg, lb=lb, active=active, idle=idle, waits=waits,
+                         failed=failed, target=r["meta"]["target"]))
     rows.sort(key=lambda x: x["rate"])
 
     # Baseline = the best p99 of any step, not the first step's: the first step
@@ -84,13 +97,15 @@ def main(argv: list[str]) -> int:
             knee = x["rate"]
         x["errors"] = errors
 
+    target = rows[0]["target"] if rows else "?"
     lines = ["# Rate sweep: where does latency degrade, and why?", "",
-             "Steady open-loop load on the sold-out path (100 tickets, sold out in the first moments), "
-             "one row per offered rate. CPU: 100% = one core. The seller is one Python process "
-             "(one uvicorn worker, D11), so ~100% is its ceiling.", "",
+             f"Target `{target}`. Steady open-loop load on the sold-out path (100 tickets, sold out in the first "
+             "moments), one row per offered rate. CPU: 100% = one core. Each seller instance is one Python process "
+             "(one uvicorn worker, D11), so ~100% per instance is its ceiling; 'sellers CPU' sums all instances.", "",
              "| offered/s | handled/s | p50 ms | p99 ms | 503+lost | acq p50/p99 | alloc p50/p99 | outside handler p50/p99 "
-             "| seller CPU mean/max | postgres CPU mean/max | PG active/idle conns | PG top waits (active) | client lag p99 | invariants |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+             "| sellers CPU mean/max | postgres CPU mean/max | nginx CPU mean/max | PG active/idle conns | PG top waits (active) "
+             "| client lag p99 | invariants |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for x in rows:
         st, srv = x["st"], x["st"].get("server_ms", {})
         waits = "; ".join(f"{e} {share:.0%}" for e, share in x["waits"]) or "-"
@@ -101,6 +116,7 @@ def main(argv: list[str]) -> int:
             f"| {_ms(srv.get('alloc', {}).get('p50'))}/{_ms(srv.get('alloc', {}).get('p99'))} "
             f"| {_ms(srv.get('outside_handler', {}).get('p50'))}/{_ms(srv.get('outside_handler', {}).get('p99'))} "
             f"| {x['seller'][0]:.0f}%/{x['seller'][1]:.0f}% | {x['pg'][0]:.0f}%/{x['pg'][1]:.0f}% "
+            f"| {x['lb'][0]:.0f}%/{x['lb'][1]:.0f}% "
             f"| {x['active']:.1f}/{x['idle']:.1f} | {waits} | {_ms(st['send_lag_ms']['p99'])} "
             f"| {'all PASS' if not x['failed'] else 'FAIL: ' + ','.join(x['failed'])} |")
     lines += ["", f"Knee (first rate with p99 > 3x the best step's p99, >0.1% errors, or <95% of offered handled): "

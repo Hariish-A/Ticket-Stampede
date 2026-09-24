@@ -4,15 +4,17 @@
 > Append new entries at the bottom of the log. Keep "Current state" and "Next up" current.
 
 ## Current state
-- **Phase:** M7 is done (TF2: kill the datastore mid-sale: `results/M7-killdb.md`). M8 is next, when the user says "start M8".
+- **Phase:** M8 is done (TF1: 3 instances behind nginx: `results/M8-tf1.md`). M9 is conditional (sold-out cache); M10 (DECISIONS.md, README, clean-machine test) is next, when the user says so.
 - **Runs?**
   - `./scripts/test.sh`: 39 buyer unit + 34 seller integration tests, all passing.
-  - New: `./scripts/killdb.sh` (3 normal runs + a `synchronous_commit=off` control).
-- **Headline:** 3 out of 3 kills mid-sale: every invariant holds, 0 phantoms, 0 orphans, and 15–32 in-flight purchases per run had committed and were recovered by retry. The control lost 6 confirmed sales and resold them. `/status` looked perfect; only the buyer's ledger caught it.
+  - `TOPOLOGY=tf1` works for c1, sweep, killdb and slowdb; `./scripts/tf1.sh` runs them all.
+- **Headline:** with no app-level lock, all invariants hold across 3 instances (C1, kill + control, slowdown). Throughput scales about 1.3× on this laptop; imbalance and connection churn were ruled out, shared-host contention was measured (+25% seller CPU per request when the client uses more cores).
 - **Repo:** https://github.com/Hariish-A/Ticket-Stampede (private), branch `main`.
 
 ## Next up
-1. M8 (TF1): seller2 + seller3 behind nginx (`least_conn`, keepalive); rerun c1, slowdb and killdb through nginx; compare requests/s for 1 vs 3 instances. (D24 fail-fast is still undecided; shedding at nginx is one of the options.)
+1. Decide M9: the M5 evidence says the sold-out path is **not** database-bound after D20 (allocator 0.4 ms of ~2.4 ms p50; the bottleneck is per-process web-stack CPU), so by the plan's own condition M9 is **skipped**. The user confirms.
+2. M10: DECISIONS.md (≤ 2 pages), README (5-minute clean run), clean-checkout test, final logs.
+3. D24 (fail-fast default) is still open.
 
 ## Known weaknesses / open issues
 _(These feed into the "where it breaks" section of DECISIONS.md.)_
@@ -28,6 +30,8 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - (M1 → fixed in M6, D22) **A pool-acquire timeout answered 503 "unknown", but the outcome is actually known**: the request never reached the database, so nothing happened. M6 should separate "not attempted, safe to retry" from "unknown outcome".
 - (M2) **The safe seller also saturates at the opening burst.** In the C1 skiplocked run, 1,479 of 51k requests got 503 (all `TimeoutError`: waiting more than 1 s for one of 20 pool connections). p99 was 1.5 s and max 2.4 s. No invariant was affected, because those requests never reached the database. M5 will find the bottleneck; candidates are single-process Python CPU, pool size, and the sold-out path's 4 queries (lookup, skip claim, blocking claim, re-lookup).
 - (M2) **/reset during live traffic isn't safe for the epoch.** A buy whose statement snapshot predates a concurrent TRUNCATE can see an empty `tickets` table and answer a spurious "sold out" for the new epoch. U4 and U3 would flag it. Resetting mid-sale is outside the brief; not handled.
+- (M8) **Scaling is machine-bound**: 3 instances give about 1.3× (knee ~1.5k → ~2k req/s) because the client, 3 sellers, Postgres and nginx share 8 physical cores. Measured: +25% seller CPU per request when the client uses more cores. A clean scaling curve needs separate hosts.
+- (M8) **nginx is a single point of failure.** Fail-fast `MAX_INFLIGHT` is per instance (3 × limit).
 - (M7) **Crash safety, not power-loss durability**: `docker kill` is a process crash. WAL already in the kernel survives it even unflushed. Power-cut durability (disk honours fsync) is untested and untestable on Docker Desktop's virtual disk.
 - (M7) **Recovery is slow for buyers**: 9–20 s from kill to healthy (5 s deliberate). The sale sold out at 49–85 s instead of about 15 s. Every buyer eventually got an answer only because retries (10, budget 200/s) outlast the outage. A buyer who gives up keeps an unknown orphan.
 - (M6) **Result timestamps are Docker-VM time, not wall time.** The Docker Desktop (WSL2) VM clock drifted about 3 h behind the host, probably after host sleep. Folder names in `results/` use the VM clock. In-run measurements use a monotonic clock and are unaffected, unless the host suspends mid-run (that would show as a huge latency spike and client send lag in the report).
@@ -235,3 +239,15 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
   - 3 out of 3 normal runs: all invariants PASS, 15,000 confirmed = 15,000 in /status, 0 phantoms, 0 orphans; 15–32 in-flight purchases per run had committed and were recovered by retry.
   - Control (`synchronous_commit=off`): FAIL I1, I2, I4. 6 confirmed sales lost and resold. /status looked perfect; the ledger caught it (D27).
 - **Bug found by the first trial (run discarded with reason):** 500s from asyncpg `InternalClientError` on connection release. The buyer treated 500 as final, leaving 2 orphans. Fixed on both sides.
+
+### 2026-09-24 — Session 4 (continued): M8, three instances behind nginx (TF1)
+- Built: seller2/seller3; nginx upstream (`least_conn`, keep-alive 256, no POST resend, timeouts above the seller's); `scripts/lib.sh` (TOPOLOGY single|tf1, `start_sellers` restarts nginx after recreating sellers); c1, sweep, slowdb and killdb parametrised; `scripts/tf1.sh`; `sweep_report` sums CPU across seller instances and adds nginx.
+- Results (`results/M8-tf1.md`):
+  - C1 through nginx: naive 8,580 tickets / 100 seats; skiplocked all PASS.
+  - Kill: all PASS, 0 phantoms; the control lost 2 and resold them (caught).
+  - Slowdown: invariants PASS; the baseline storm persists (560 orphans); budget + fail-fast gives 0/0.
+- Scaling investigation:
+  - The knee moves ~1.5k → ~2k (1.3×).
+  - Ruled out imbalance (per-instance CPU equal) and connection churn (~86 ESTABLISHED, 2 TIME_WAIT to the sellers).
+  - Measured host contention: at 1,500 req/s, 2 vs 8 client processes changes seller CPU per request from 0.95 to 1.19 ms. The host is a Ryzen 7 7435HS, 8 cores / 16 threads.
+- Predicted, but not reproduced: nginx's stale upstream IP after a seller is recreated (Docker reused the IP). The compose comment was corrected to state what was observed; the restart stays as insurance.

@@ -1,0 +1,1150 @@
+{
+  "meta": {
+    "scenario": "c1-skiplocked-tf1",
+    "target": "http://lb:8080",
+    "allocator": "skiplocked",
+    "mode": "open-loop",
+    "processes": 4,
+    "tickets": 100,
+    "requests": 50000,
+    "burst": 1000,
+    "rate": 1000,
+    "seed": 1,
+    "started_utc": "2026-09-24T18:08:46+00:00",
+    "retry_unknown": 0,
+    "retry_rate": 0,
+    "fault": null,
+    "args": {
+      "command": "run",
+      "target": "http://lb:8080",
+      "processes": 4,
+      "max_inflight": 2000,
+      "timeout": 10.0,
+      "out": "results",
+      "scenario": "c1-skiplocked-tf1",
+      "tickets": 100,
+      "requests": 50000,
+      "burst": 1000,
+      "rate": 1000,
+      "concurrency": null,
+      "dup_concurrent": 500,
+      "dup_sequential": 500,
+      "replay_after": 50,
+      "new_rid": 20,
+      "rid_conflict": 20,
+      "audit_interval": 0.1,
+      "seed": 1,
+      "no_reset": false,
+      "expect_allocator": "skiplocked",
+      "retry_unknown": 0,
+      "retry_rate": 0,
+      "stall_at": null,
+      "stall_for": 10.0,
+      "stall_latency_ms": 3000,
+      "toxiproxy": "http://toxiproxy:8474",
+      "toxiproxy_proxy": "postgres",
+      "fault_file": null
+    }
+  },
+  "stats": {
+    "requests_sent": 51000,
+    "responses": 51000,
+    "no_response": 0,
+    "window_s": 49.632,
+    "throughput_rps": 1027.6,
+    "latency_ms": {
+      "count": 51000,
+      "p50": 3.015877999132499,
+      "p90": 5.805916000099387,
+      "p99": 1103.0281109997304,
+      "max": 1239.447375999589
+    },
+    "service_ms": {
+      "count": 51000,
+      "p50": 2.259486002003541,
+      "p90": 4.838459997699829,
+      "p99": 1066.6195480007445,
+      "max": 1236.138847998518
+    },
+    "send_lag_ms": {
+      "count": 51000,
+      "p50": 0.7414690007863101,
+      "p90": 1.1802420012827497,
+      "p99": 13.51907400021446,
+      "max": 138.60567200026708
+    },
+    "server_ms": {
+      "acq": {
+        "count": 51000,
+        "p50": 0.04,
+        "p90": 0.08,
+        "p99": 0.15,
+        "max": 343.43
+      },
+      "alloc": {
+        "count": 51000,
+        "p50": 0.46,
+        "p90": 1.04,
+        "p99": 4.48,
+        "max": 232.32
+      },
+      "handler": {
+        "count": 51000,
+        "p50": 0.93,
+        "p90": 2.35,
+        "p99": 14.6,
+        "max": 468.18
+      },
+      "outside_handler": {
+        "count": 51000,
+        "p50": 1.3131920003029518,
+        "p90": 2.4669919981667774,
+        "p99": 1054.7082820004784,
+        "max": 1230.088847998518
+      }
+    },
+    "client": {
+      "processes": 4,
+      "cpu_util_per_worker": [
+        0.208,
+        0.203,
+        0.206,
+        0.205
+      ],
+      "cpu_util_max": 0.20777164048834718
+    },
+    "by_status": {
+      "200": 102,
+      "409": 50898
+    },
+    "by_answer": {
+      "purchased": 102,
+      "sold_out": 50898
+    },
+    "by_kind": {
+      "dup_concurrent": 500,
+      "dup_sequential": 500,
+      "fresh": 50000
+    },
+    "errors": {},
+    "first_sold_out_at_s": 0.632,
+    "outcomes": {
+      "buyers": 50000,
+      "final": {
+        "sold_out": 49900,
+        "purchased": 100
+      },
+      "had_unclear_answer": 0,
+      "recovered_by_retry": 0,
+      "bought_on_retry": 0
+    },
+    "timeline": [
+      {
+        "t_s": 0.0,
+        "sent": 2043,
+        "answers": {
+          "sold_out": 1941,
+          "purchased": 102
+        },
+        "retries": 0,
+        "p50_ms": 928.1536960006633,
+        "p99_ms": 1227.7958619997662
+      },
+      {
+        "t_s": 1.0,
+        "sent": 1017,
+        "answers": {
+          "sold_out": 1017
+        },
+        "retries": 0,
+        "p50_ms": 3.237561999412719,
+        "p99_ms": 64.78219299970078
+      },
+      {
+        "t_s": 2.0,
+        "sent": 1010,
+        "answers": {
+          "sold_out": 1010
+        },
+        "retries": 0,
+        "p50_ms": 2.5134259994956665,
+        "p99_ms": 4.0574939994257875
+      },
+      {
+        "t_s": 3.0,
+        "sent": 1017,
+        "answers": {
+          "sold_out": 1017
+        },
+        "retries": 0,
+        "p50_ms": 2.629057999001816,
+        "p99_ms": 4.845472998567857
+      },
+      {
+        "t_s": 4.0,
+        "sent": 1021,
+        "answers": {
+          "sold_out": 1021
+        },
+        "retries": 0,
+        "p50_ms": 2.377052998781437,
+        "p99_ms": 3.667368000606075
+      },
+      {
+        "t_s": 5.0,
+        "sent": 1022,
+        "answers": {
+          "sold_out": 1022
+        },
+        "retries": 0,
+        "p50_ms": 2.4785040004644543,
+        "p99_ms": 4.475885001738789
+      },
+      {
+        "t_s": 6.0,
+        "sent": 1020,
+        "answers": {
+          "sold_out": 1020
+        },
+        "retries": 0,
+        "p50_ms": 2.711648998229066,
+        "p99_ms": 5.614129000605317
+      },
+      {
+        "t_s": 7.0,
+        "sent": 1016,
+        "answers": {
+          "sold_out": 1016
+        },
+        "retries": 0,
+        "p50_ms": 2.78770600198186,
+        "p99_ms": 4.562852998788003
+      },
+      {
+        "t_s": 8.0,
+        "sent": 1011,
+        "answers": {
+          "sold_out": 1011
+        },
+        "retries": 0,
+        "p50_ms": 2.7657009995891713,
+        "p99_ms": 7.42256100056693
+      },
+      {
+        "t_s": 9.0,
+        "sent": 1019,
+        "answers": {
+          "sold_out": 1019
+        },
+        "retries": 0,
+        "p50_ms": 2.361827002459904,
+        "p99_ms": 3.763141001400072
+      },
+      {
+        "t_s": 10.0,
+        "sent": 1027,
+        "answers": {
+          "sold_out": 1027
+        },
+        "retries": 0,
+        "p50_ms": 3.195586999936495,
+        "p99_ms": 10.10823300021002
+      },
+      {
+        "t_s": 11.0,
+        "sent": 1014,
+        "answers": {
+          "sold_out": 1014
+        },
+        "retries": 0,
+        "p50_ms": 2.5441599973419216,
+        "p99_ms": 4.628015001799213
+      },
+      {
+        "t_s": 12.0,
+        "sent": 1021,
+        "answers": {
+          "sold_out": 1021
+        },
+        "retries": 0,
+        "p50_ms": 2.588519997516414,
+        "p99_ms": 6.175705999339698
+      },
+      {
+        "t_s": 13.0,
+        "sent": 1027,
+        "answers": {
+          "sold_out": 1027
+        },
+        "retries": 0,
+        "p50_ms": 2.877094000723446,
+        "p99_ms": 6.575215997145278
+      },
+      {
+        "t_s": 14.0,
+        "sent": 1017,
+        "answers": {
+          "sold_out": 1017
+        },
+        "retries": 0,
+        "p50_ms": 2.5978810008382425,
+        "p99_ms": 4.750123000121675
+      },
+      {
+        "t_s": 15.0,
+        "sent": 1028,
+        "answers": {
+          "sold_out": 1028
+        },
+        "retries": 0,
+        "p50_ms": 3.4595100005390123,
+        "p99_ms": 9.020892997796182
+      },
+      {
+        "t_s": 16.0,
+        "sent": 1023,
+        "answers": {
+          "sold_out": 1023
+        },
+        "retries": 0,
+        "p50_ms": 2.7665679990604986,
+        "p99_ms": 5.603813999186968
+      },
+      {
+        "t_s": 17.0,
+        "sent": 1016,
+        "answers": {
+          "sold_out": 1016
+        },
+        "retries": 0,
+        "p50_ms": 2.982221998536261,
+        "p99_ms": 10.508536997804185
+      },
+      {
+        "t_s": 18.0,
+        "sent": 1023,
+        "answers": {
+          "sold_out": 1023
+        },
+        "retries": 0,
+        "p50_ms": 4.302379998989636,
+        "p99_ms": 19.28715000030934
+      },
+      {
+        "t_s": 19.0,
+        "sent": 1025,
+        "answers": {
+          "sold_out": 1025
+        },
+        "retries": 0,
+        "p50_ms": 3.052706000744365,
+        "p99_ms": 6.017153998982394
+      },
+      {
+        "t_s": 20.0,
+        "sent": 1019,
+        "answers": {
+          "sold_out": 1019
+        },
+        "retries": 0,
+        "p50_ms": 3.1755769996379968,
+        "p99_ms": 5.8833370021602605
+      },
+      {
+        "t_s": 21.0,
+        "sent": 1018,
+        "answers": {
+          "sold_out": 1018
+        },
+        "retries": 0,
+        "p50_ms": 3.118673001154093,
+        "p99_ms": 6.269587996939663
+      },
+      {
+        "t_s": 22.0,
+        "sent": 1015,
+        "answers": {
+          "sold_out": 1015
+        },
+        "retries": 0,
+        "p50_ms": 3.104985000391025,
+        "p99_ms": 5.924839999352116
+      },
+      {
+        "t_s": 23.0,
+        "sent": 1018,
+        "answers": {
+          "sold_out": 1018
+        },
+        "retries": 0,
+        "p50_ms": 3.5222260012233164,
+        "p99_ms": 7.603238002047874
+      },
+      {
+        "t_s": 24.0,
+        "sent": 1022,
+        "answers": {
+          "sold_out": 1022
+        },
+        "retries": 0,
+        "p50_ms": 2.8169690012873616,
+        "p99_ms": 4.956803000823129
+      },
+      {
+        "t_s": 25.0,
+        "sent": 1020,
+        "answers": {
+          "sold_out": 1020
+        },
+        "retries": 0,
+        "p50_ms": 3.289806998509448,
+        "p99_ms": 6.655322002188768
+      },
+      {
+        "t_s": 26.0,
+        "sent": 1021,
+        "answers": {
+          "sold_out": 1021
+        },
+        "retries": 0,
+        "p50_ms": 2.684791001229314,
+        "p99_ms": 4.540395999356406
+      },
+      {
+        "t_s": 27.0,
+        "sent": 1013,
+        "answers": {
+          "sold_out": 1013
+        },
+        "retries": 0,
+        "p50_ms": 3.7706019975303207,
+        "p99_ms": 12.939099000504939
+      },
+      {
+        "t_s": 28.0,
+        "sent": 1026,
+        "answers": {
+          "sold_out": 1026
+        },
+        "retries": 0,
+        "p50_ms": 3.7980420020176098,
+        "p99_ms": 28.339764998236205
+      },
+      {
+        "t_s": 29.0,
+        "sent": 1017,
+        "answers": {
+          "sold_out": 1017
+        },
+        "retries": 0,
+        "p50_ms": 2.8756230021826923,
+        "p99_ms": 5.068329002824612
+      },
+      {
+        "t_s": 30.0,
+        "sent": 1009,
+        "answers": {
+          "sold_out": 1009
+        },
+        "retries": 0,
+        "p50_ms": 3.6686839994217735,
+        "p99_ms": 6.8930150009691715
+      },
+      {
+        "t_s": 31.0,
+        "sent": 1023,
+        "answers": {
+          "sold_out": 1023
+        },
+        "retries": 0,
+        "p50_ms": 2.914073000283679,
+        "p99_ms": 5.431184999906691
+      },
+      {
+        "t_s": 32.0,
+        "sent": 1027,
+        "answers": {
+          "sold_out": 1027
+        },
+        "retries": 0,
+        "p50_ms": 3.4719340001174714,
+        "p99_ms": 9.871397000097204
+      },
+      {
+        "t_s": 33.0,
+        "sent": 1014,
+        "answers": {
+          "sold_out": 1014
+        },
+        "retries": 0,
+        "p50_ms": 2.784276999591384,
+        "p99_ms": 6.129115001385799
+      },
+      {
+        "t_s": 34.0,
+        "sent": 1028,
+        "answers": {
+          "sold_out": 1028
+        },
+        "retries": 0,
+        "p50_ms": 3.1980809981178027,
+        "p99_ms": 5.667192002874799
+      },
+      {
+        "t_s": 35.0,
+        "sent": 1025,
+        "answers": {
+          "sold_out": 1025
+        },
+        "retries": 0,
+        "p50_ms": 2.984013997775037,
+        "p99_ms": 16.678372001479147
+      },
+      {
+        "t_s": 36.0,
+        "sent": 1020,
+        "answers": {
+          "sold_out": 1020
+        },
+        "retries": 0,
+        "p50_ms": 2.629929000249831,
+        "p99_ms": 4.3163860027561896
+      },
+      {
+        "t_s": 37.0,
+        "sent": 1024,
+        "answers": {
+          "sold_out": 1024
+        },
+        "retries": 0,
+        "p50_ms": 3.6096490002819337,
+        "p99_ms": 15.171824998105876
+      },
+      {
+        "t_s": 38.0,
+        "sent": 1020,
+        "answers": {
+          "sold_out": 1020
+        },
+        "retries": 0,
+        "p50_ms": 3.586920000088867,
+        "p99_ms": 10.831883999344427
+      },
+      {
+        "t_s": 39.0,
+        "sent": 1023,
+        "answers": {
+          "sold_out": 1023
+        },
+        "retries": 0,
+        "p50_ms": 2.8452699989429675,
+        "p99_ms": 4.764261000673287
+      },
+      {
+        "t_s": 40.0,
+        "sent": 1012,
+        "answers": {
+          "sold_out": 1012
+        },
+        "retries": 0,
+        "p50_ms": 3.4196250016975682,
+        "p99_ms": 7.440272998792352
+      },
+      {
+        "t_s": 41.0,
+        "sent": 1023,
+        "answers": {
+          "sold_out": 1023
+        },
+        "retries": 0,
+        "p50_ms": 3.3291649997408967,
+        "p99_ms": 5.798645997856511
+      },
+      {
+        "t_s": 42.0,
+        "sent": 1016,
+        "answers": {
+          "sold_out": 1016
+        },
+        "retries": 0,
+        "p50_ms": 3.026439000677783,
+        "p99_ms": 24.016379000386223
+      },
+      {
+        "t_s": 43.0,
+        "sent": 1018,
+        "answers": {
+          "sold_out": 1018
+        },
+        "retries": 0,
+        "p50_ms": 4.006133996881545,
+        "p99_ms": 17.684572001599008
+      },
+      {
+        "t_s": 44.0,
+        "sent": 1018,
+        "answers": {
+          "sold_out": 1018
+        },
+        "retries": 0,
+        "p50_ms": 3.0497510597342625,
+        "p99_ms": 6.10440500167897
+      },
+      {
+        "t_s": 45.0,
+        "sent": 1020,
+        "answers": {
+          "sold_out": 1020
+        },
+        "retries": 0,
+        "p50_ms": 2.9542759984906297,
+        "p99_ms": 5.748943996877642
+      },
+      {
+        "t_s": 46.0,
+        "sent": 1026,
+        "answers": {
+          "sold_out": 1026
+        },
+        "retries": 0,
+        "p50_ms": 2.4228540023614187,
+        "p99_ms": 4.54455400176812
+      },
+      {
+        "t_s": 47.0,
+        "sent": 1024,
+        "answers": {
+          "sold_out": 1024
+        },
+        "retries": 0,
+        "p50_ms": 3.2251890006591566,
+        "p99_ms": 11.915602000954095
+      },
+      {
+        "t_s": 48.0,
+        "sent": 1017,
+        "answers": {
+          "sold_out": 1017
+        },
+        "retries": 0,
+        "p50_ms": 3.6968309977964964,
+        "p99_ms": 11.526410999067593
+      },
+      {
+        "t_s": 49.0,
+        "sent": 7,
+        "answers": {
+          "sold_out": 7
+        },
+        "retries": 0,
+        "p50_ms": 13.341319590836065,
+        "p99_ms": 15.744484386232216
+      }
+    ],
+    "probes": 90,
+    "server_counters": {
+      "claims": 40,
+      "blocking_fallbacks": 6,
+      "sold_out_fast": 16927,
+      "sold_out_checks": 6
+    }
+  },
+  "checks": [
+    {
+      "id": "I1",
+      "name": "Never sell more tickets than exist",
+      "passed": true,
+      "detail": "100 confirmed, 100 in /status, total 100",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I2",
+      "name": "Never issue the same ticket number twice",
+      "passed": true,
+      "detail": "every ticket number has exactly one holder",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I3",
+      "name": "A repeated request_id gets one ticket, not two",
+      "passed": true,
+      "detail": "1050 duplicate/replayed requests, none produced a second ticket",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I4",
+      "name": "/status count matches the tickets actually issued",
+      "passed": true,
+      "detail": "sold=100 = 100 holders, every confirmed ticket present",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U1",
+      "name": "One ticket per user (product rule D3)",
+      "passed": true,
+      "detail": "no user holds two tickets",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U2",
+      "name": "A winner's request_id reused by another user is never given a ticket (422)",
+      "passed": true,
+      "detail": "20 conflicting requests: 20 rejected (422), 0 refused otherwise (e.g. 409), 0 never got a definite answer (503/timeout), 0 given a ticket",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U3",
+      "name": "Nobody is told 'sold out' while tickets remain",
+      "passed": true,
+      "detail": "50908 sold-out answers, 100/100 issued",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U4",
+      "name": "Every response belongs to this sale (no reset mid-run)",
+      "passed": true,
+      "detail": "all responses epoch 1050",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U5",
+      "name": "A buyer who holds a ticket is never told 'sold out'",
+      "passed": true,
+      "detail": "62 repeat requests from holders, none told 'sold out'",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "A3",
+      "name": "Live audit: invariants held in every /status snapshot during the sale",
+      "passed": true,
+      "detail": "494 snapshots over 52.1s, 0 violations",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "A2",
+      "name": "Orphaned tickets (sold, but the buyer was never told)",
+      "passed": null,
+      "detail": "0 tickets in /status were never confirmed to their buyer",
+      "examples": [],
+      "verdict": "INFO"
+    }
+  ],
+  "status": {
+    "epoch": 1050,
+    "total": 100,
+    "sold": 100,
+    "holders": [
+      {
+        "ticket_no": 1,
+        "user_id": "u000341"
+      },
+      {
+        "ticket_no": 2,
+        "user_id": "u000108"
+      },
+      {
+        "ticket_no": 3,
+        "user_id": "u000788"
+      },
+      {
+        "ticket_no": 4,
+        "user_id": "u000345"
+      },
+      {
+        "ticket_no": 5,
+        "user_id": "u000109"
+      },
+      {
+        "ticket_no": 6,
+        "user_id": "u000565"
+      },
+      {
+        "ticket_no": 7,
+        "user_id": "u000111"
+      },
+      {
+        "ticket_no": 8,
+        "user_id": "u000337"
+      },
+      {
+        "ticket_no": 9,
+        "user_id": "u000117"
+      },
+      {
+        "ticket_no": 10,
+        "user_id": "u001010"
+      },
+      {
+        "ticket_no": 11,
+        "user_id": "u000113"
+      },
+      {
+        "ticket_no": 12,
+        "user_id": "u000795"
+      },
+      {
+        "ticket_no": 13,
+        "user_id": "u000793"
+      },
+      {
+        "ticket_no": 14,
+        "user_id": "u000569"
+      },
+      {
+        "ticket_no": 15,
+        "user_id": "u000339"
+      },
+      {
+        "ticket_no": 16,
+        "user_id": "u000353"
+      },
+      {
+        "ticket_no": 17,
+        "user_id": "u001007"
+      },
+      {
+        "ticket_no": 18,
+        "user_id": "u000124"
+      },
+      {
+        "ticket_no": 19,
+        "user_id": "u000572"
+      },
+      {
+        "ticket_no": 20,
+        "user_id": "u000346"
+      },
+      {
+        "ticket_no": 21,
+        "user_id": "u001017"
+      },
+      {
+        "ticket_no": 22,
+        "user_id": "u000797"
+      },
+      {
+        "ticket_no": 23,
+        "user_id": "u001008"
+      },
+      {
+        "ticket_no": 24,
+        "user_id": "u000123"
+      },
+      {
+        "ticket_no": 25,
+        "user_id": "u001332"
+      },
+      {
+        "ticket_no": 26,
+        "user_id": "u000801"
+      },
+      {
+        "ticket_no": 27,
+        "user_id": "u000800"
+      },
+      {
+        "ticket_no": 28,
+        "user_id": "u001009"
+      },
+      {
+        "ticket_no": 29,
+        "user_id": "u000561"
+      },
+      {
+        "ticket_no": 30,
+        "user_id": "u001018"
+      },
+      {
+        "ticket_no": 31,
+        "user_id": "u000564"
+      },
+      {
+        "ticket_no": 32,
+        "user_id": "u000118"
+      },
+      {
+        "ticket_no": 33,
+        "user_id": "u000121"
+      },
+      {
+        "ticket_no": 34,
+        "user_id": "u000356"
+      },
+      {
+        "ticket_no": 35,
+        "user_id": "u000128"
+      },
+      {
+        "ticket_no": 36,
+        "user_id": "u000116"
+      },
+      {
+        "ticket_no": 37,
+        "user_id": "u000347"
+      },
+      {
+        "ticket_no": 38,
+        "user_id": "u000796"
+      },
+      {
+        "ticket_no": 39,
+        "user_id": "u000798"
+      },
+      {
+        "ticket_no": 40,
+        "user_id": "u000790"
+      },
+      {
+        "ticket_no": 41,
+        "user_id": "u001014"
+      },
+      {
+        "ticket_no": 42,
+        "user_id": "u000336"
+      },
+      {
+        "ticket_no": 43,
+        "user_id": "u000560"
+      },
+      {
+        "ticket_no": 44,
+        "user_id": "u001002"
+      },
+      {
+        "ticket_no": 45,
+        "user_id": "u000789"
+      },
+      {
+        "ticket_no": 46,
+        "user_id": "u001416"
+      },
+      {
+        "ticket_no": 47,
+        "user_id": "u000112"
+      },
+      {
+        "ticket_no": 48,
+        "user_id": "u000338"
+      },
+      {
+        "ticket_no": 49,
+        "user_id": "u001378"
+      },
+      {
+        "ticket_no": 50,
+        "user_id": "u001001"
+      },
+      {
+        "ticket_no": 51,
+        "user_id": "u000563"
+      },
+      {
+        "ticket_no": 52,
+        "user_id": "u000791"
+      },
+      {
+        "ticket_no": 53,
+        "user_id": "u001497"
+      },
+      {
+        "ticket_no": 54,
+        "user_id": "u000129"
+      },
+      {
+        "ticket_no": 55,
+        "user_id": "u000348"
+      },
+      {
+        "ticket_no": 56,
+        "user_id": "u000571"
+      },
+      {
+        "ticket_no": 57,
+        "user_id": "u000809"
+      },
+      {
+        "ticket_no": 58,
+        "user_id": "u000792"
+      },
+      {
+        "ticket_no": 59,
+        "user_id": "u000562"
+      },
+      {
+        "ticket_no": 60,
+        "user_id": "u000566"
+      },
+      {
+        "ticket_no": 61,
+        "user_id": "u000575"
+      },
+      {
+        "ticket_no": 62,
+        "user_id": "u001345"
+      },
+      {
+        "ticket_no": 63,
+        "user_id": "u000132"
+      },
+      {
+        "ticket_no": 64,
+        "user_id": "u000125"
+      },
+      {
+        "ticket_no": 65,
+        "user_id": "u000794"
+      },
+      {
+        "ticket_no": 66,
+        "user_id": "u001577"
+      },
+      {
+        "ticket_no": 67,
+        "user_id": "u000576"
+      },
+      {
+        "ticket_no": 68,
+        "user_id": "u001020"
+      },
+      {
+        "ticket_no": 69,
+        "user_id": "u000110"
+      },
+      {
+        "ticket_no": 70,
+        "user_id": "u001443"
+      },
+      {
+        "ticket_no": 71,
+        "user_id": "u001016"
+      },
+      {
+        "ticket_no": 72,
+        "user_id": "u000120"
+      },
+      {
+        "ticket_no": 73,
+        "user_id": "u000351"
+      },
+      {
+        "ticket_no": 74,
+        "user_id": "u000127"
+      },
+      {
+        "ticket_no": 75,
+        "user_id": "u001013"
+      },
+      {
+        "ticket_no": 76,
+        "user_id": "u001564"
+      },
+      {
+        "ticket_no": 77,
+        "user_id": "u001502"
+      },
+      {
+        "ticket_no": 78,
+        "user_id": "u001011"
+      },
+      {
+        "ticket_no": 79,
+        "user_id": "u000360"
+      },
+      {
+        "ticket_no": 80,
+        "user_id": "u001593"
+      },
+      {
+        "ticket_no": 81,
+        "user_id": "u000570"
+      },
+      {
+        "ticket_no": 82,
+        "user_id": "u000799"
+      },
+      {
+        "ticket_no": 83,
+        "user_id": "u000115"
+      },
+      {
+        "ticket_no": 84,
+        "user_id": "u000807"
+      },
+      {
+        "ticket_no": 85,
+        "user_id": "u000133"
+      },
+      {
+        "ticket_no": 86,
+        "user_id": "u001589"
+      },
+      {
+        "ticket_no": 87,
+        "user_id": "u000340"
+      },
+      {
+        "ticket_no": 88,
+        "user_id": "u000812"
+      },
+      {
+        "ticket_no": 89,
+        "user_id": "u000355"
+      },
+      {
+        "ticket_no": 90,
+        "user_id": "u000567"
+      },
+      {
+        "ticket_no": 91,
+        "user_id": "u001495"
+      },
+      {
+        "ticket_no": 92,
+        "user_id": "u000344"
+      },
+      {
+        "ticket_no": 93,
+        "user_id": "u000568"
+      },
+      {
+        "ticket_no": 94,
+        "user_id": "u000802"
+      },
+      {
+        "ticket_no": 95,
+        "user_id": "u000580"
+      },
+      {
+        "ticket_no": 96,
+        "user_id": "u000579"
+      },
+      {
+        "ticket_no": 97,
+        "user_id": "u000343"
+      },
+      {
+        "ticket_no": 98,
+        "user_id": "u000119"
+      },
+      {
+        "ticket_no": 99,
+        "user_id": "u001569"
+      },
+      {
+        "ticket_no": 100,
+        "user_id": "u001566"
+      }
+    ],
+    "allocator": "skiplocked"
+  }
+}

@@ -26,6 +26,7 @@ git clone <this repo> && cd ticket-stampede
 ./scripts/d10.sh       # buyer on the compose network vs through the host's published port
 ./scripts/slowdb.sh    # Postgres +3 s per answer for 10 s mid-sale: baseline / seller fail-fast / client retry budget / both / closed-loop (~12 min)
 ./scripts/killdb.sh    # SIGKILL Postgres mid-sale and restart it: 3 runs + a synchronous_commit=off control that must FAIL (~12 min)
+./scripts/tf1.sh       # TF1: all of the above against 3 sellers behind nginx (~25 min); or TOPOLOGY=tf1 ./scripts/<any>.sh
 ```
 Each run prints a report and saves it to `results/<timestamp>-<scenario>/`:
 - `report.md` and `report.json`, which are committed;
@@ -55,7 +56,7 @@ The run has two phases. First the **stampede**, which is timed: it's sent on a f
 
 Every report ends with **client health**: each worker's CPU use and the client's send lag. If a worker is near 100% of a core, or the send lag grows, the client (not the seller) was the limit, and that run's numbers are suspect.
 
-Manual poking: the seller is on `http://localhost:8001` (if that port is busy, set `SELLER1_PORT`, e.g. `SELLER1_PORT=18001 docker compose up -d`).
+Manual poking: seller1 is on `http://localhost:8001` and the load balancer over seller1–3 on `http://localhost:8080` (if that port is busy, set `SELLER1_PORT`, e.g. `SELLER1_PORT=18001 docker compose up -d`).
 ```bash
 curl -X POST localhost:8001/reset -H 'content-type: application/json' -d '{"count":100}'
 curl -X POST localhost:8001/buy   -H 'content-type: application/json' -d '{"user_id":"alice","request_id":"r1"}'
@@ -93,4 +94,5 @@ Clean up with `docker compose down -v`.
 | M5: how much load, and where is the bottleneck | done: [results/M5-bottleneck.md](results/M5-bottleneck.md) |
 | M6: the datastore goes slow for 10 s | done: [results/M6-slowdb.md](results/M6-slowdb.md) |
 | M7: kill the datastore mid-sale (TF2) | done: [results/M7-killdb.md](results/M7-killdb.md) |
-| M8: three instances behind nginx (TF1) | next |
+| M8: three instances behind nginx (TF1) | done: [results/M8-tf1.md](results/M8-tf1.md) |
+| M10: write-up and clean-machine check | next |

@@ -25,6 +25,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export MSYS_NO_PATHCONV=1
+source scripts/lib.sh   # TOPOLOGY=tf1: the same, against 3 sellers behind nginx (M8)
+suffix=""; [ "$TOPOLOGY" = tf1 ] && suffix="-tf1"
 
 RUNS=${RUNS:-"1 2 3 off"}
 DOWN=${DOWN:-5}
@@ -36,8 +38,7 @@ vmnow() {  # wall clock of the Docker VM -- the clock the buyer's timestamps use
 }
 set_sync() {  # ALTER DATABASE (see hotrow.sh: the -c flag outranks ALTER SYSTEM); new sessions only
   psql -c "ALTER DATABASE tickets SET synchronous_commit = $1" >/dev/null
-  ALLOCATOR=skiplocked docker compose restart seller1 >/dev/null 2>&1
-  ALLOCATOR=skiplocked docker compose up -d --wait seller1 2>&1 | grep -v "^ Container" || true
+  restart_sellers ALLOCATOR=skiplocked
   local actual; actual=$(psql -c 'SHOW synchronous_commit' | tr -d '\r')
   [ "$actual" = "$1" ] || { echo "synchronous_commit=$1 did not apply (got $actual)" >&2; exit 1; }
 }
@@ -48,18 +49,18 @@ restore() {
 }
 trap restore EXIT
 
-docker compose build -q seller1 buyer
-ALLOCATOR=skiplocked docker compose up -d --wait postgres seller1 2>&1 | grep -v "^ Container" || true
+docker compose build -q $SELLERS buyer
+start_sellers ALLOCATOR=skiplocked
 
 runs=()
 for r in $RUNS; do
   sync=on; seed=$r; kill_after=$(( 6 + 2 * ${r//off/2} ))
   [ "$r" = off ] && { sync=off; seed=4; }
   set_sync "$sync"
-  label="killdb-$r"; events="results/.$label-events.json"; rm -f "$events"
+  label="killdb$suffix-$r"; events="results/.$label-events.json"; rm -f "$events"
   echo ">>> run $r: synchronous_commit=$sync, SIGKILL postgres ~${kill_after}s after launch, down ${DOWN}s"
 
-  docker compose run --rm --no-deps buyer run --target http://seller1:8000 --expect-allocator skiplocked \
+  docker compose run --rm --no-deps buyer run --target "$TARGET" --expect-allocator skiplocked \
     --scenario "$label" --seed "$seed" --tickets 15000 --requests 40000 --burst 1000 --rate 1000 \
     --retry-unknown 10 --retry-rate 200 --fault-file "$events" "$@" > "results/.$label.out" 2>&1 &
   buyer=$!
@@ -83,7 +84,7 @@ for r in $RUNS; do
 done
 
 restore
-summary="results/$(date -u +%Y%m%dT%H%M%SZ)-killdb-summary.md"
+summary="results/$(date -u +%Y%m%dT%H%M%SZ)-killdb$suffix-summary.md"
 docker compose run --rm --no-deps buyer compare "${runs[@]}" --timeline \
   --title "M7 / TF2: SIGKILL Postgres mid-sale, restart after ${DOWN}s (runs: $RUNS)" --write "$summary"
 echo "summary: $summary"

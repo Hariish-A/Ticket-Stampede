@@ -1,0 +1,860 @@
+{
+  "meta": {
+    "scenario": "sweep-tf1-1500",
+    "target": "http://lb:8080",
+    "allocator": "skiplocked",
+    "mode": "open-loop",
+    "processes": 8,
+    "tickets": 100,
+    "requests": 30000,
+    "burst": 0,
+    "rate": 1500.0,
+    "seed": 1,
+    "started_utc": "2026-09-24T18:15:52+00:00",
+    "retry_unknown": 0,
+    "retry_rate": 0,
+    "fault": null,
+    "args": {
+      "command": "run",
+      "target": "http://lb:8080",
+      "processes": 8,
+      "max_inflight": 2000,
+      "timeout": 10.0,
+      "out": "results",
+      "scenario": "sweep-tf1-1500",
+      "tickets": 100,
+      "requests": 30000,
+      "burst": 0,
+      "rate": 1500.0,
+      "concurrency": null,
+      "dup_concurrent": 0,
+      "dup_sequential": 0,
+      "replay_after": 50,
+      "new_rid": 20,
+      "rid_conflict": 20,
+      "audit_interval": 0.0,
+      "seed": 1,
+      "no_reset": false,
+      "expect_allocator": "skiplocked",
+      "retry_unknown": 0,
+      "retry_rate": 0,
+      "stall_at": null,
+      "stall_for": 10.0,
+      "stall_latency_ms": 3000,
+      "toxiproxy": "http://toxiproxy:8474",
+      "toxiproxy_proxy": "postgres",
+      "fault_file": null
+    }
+  },
+  "stats": {
+    "requests_sent": 30000,
+    "responses": 30000,
+    "no_response": 0,
+    "window_s": 20.006,
+    "throughput_rps": 1499.6,
+    "latency_ms": {
+      "count": 30000,
+      "p50": 3.624540666351095,
+      "p90": 6.3083083332458045,
+      "p99": 122.1839516692853,
+      "max": 347.46151066792663
+    },
+    "service_ms": {
+      "count": 30000,
+      "p50": 2.8398920003382955,
+      "p90": 5.479408999235602,
+      "p99": 121.45388400313095,
+      "max": 346.9731490004051
+    },
+    "send_lag_ms": {
+      "count": 30000,
+      "p50": 0.7564463376183994,
+      "p90": 1.1740453337552026,
+      "p99": 1.4966083363106009,
+      "max": 17.755911001586355
+    },
+    "server_ms": {
+      "acq": {
+        "count": 29998,
+        "p50": 0.05,
+        "p90": 0.08,
+        "p99": 6.12,
+        "max": 254.53
+      },
+      "alloc": {
+        "count": 29998,
+        "p50": 0.58,
+        "p90": 1.25,
+        "p99": 7.94,
+        "max": 179.02
+      },
+      "handler": {
+        "count": 29998,
+        "p50": 1.23,
+        "p90": 3.0,
+        "p99": 63.64,
+        "max": 283.59
+      },
+      "outside_handler": {
+        "count": 29998,
+        "p50": 1.571462998277275,
+        "p90": 2.4887230031052603,
+        "p99": 28.442697000426733,
+        "max": 263.5027889996127
+      }
+    },
+    "client": {
+      "processes": 8,
+      "cpu_util_per_worker": [
+        0.176,
+        0.177,
+        0.183,
+        0.177,
+        0.178,
+        0.176,
+        0.179,
+        0.178
+      ],
+      "cpu_util_max": 0.18261420406687562
+    },
+    "by_status": {
+      "200": 100,
+      "409": 29898,
+      "502": 2
+    },
+    "by_answer": {
+      "502": 2,
+      "purchased": 100,
+      "sold_out": 29898
+    },
+    "by_kind": {
+      "fresh": 30000
+    },
+    "errors": {
+      "JSONDecodeError": 2
+    },
+    "first_sold_out_at_s": 0.227,
+    "outcomes": {
+      "buyers": 30000,
+      "final": {
+        "purchased": 100,
+        "sold_out": 29898,
+        "still_unknown": 2
+      },
+      "had_unclear_answer": 2,
+      "recovered_by_retry": 0,
+      "bought_on_retry": 0
+    },
+    "timeline": [
+      {
+        "t_s": 0.0,
+        "sent": 1499,
+        "answers": {
+          "purchased": 100,
+          "sold_out": 1397,
+          "502": 2
+        },
+        "retries": 0,
+        "p50_ms": 4.8456793374498375,
+        "p99_ms": 292.96671633346705
+      },
+      {
+        "t_s": 1.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.6670236695499625,
+        "p99_ms": 48.0184256703069
+      },
+      {
+        "t_s": 2.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.944375665014377,
+        "p99_ms": 12.118656337406719
+      },
+      {
+        "t_s": 3.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 4.397382668685168,
+        "p99_ms": 15.401419335830724
+      },
+      {
+        "t_s": 4.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.69855066674063,
+        "p99_ms": 10.223151999525726
+      },
+      {
+        "t_s": 5.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 4.023317334940657,
+        "p99_ms": 15.406176669785054
+      },
+      {
+        "t_s": 6.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 4.017800332803745,
+        "p99_ms": 9.734642666444415
+      },
+      {
+        "t_s": 7.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.254819668654818,
+        "p99_ms": 6.96634467021795
+      },
+      {
+        "t_s": 8.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 2.8548486698127817,
+        "p99_ms": 5.384352334658615
+      },
+      {
+        "t_s": 9.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.993842332420172,
+        "p99_ms": 10.034202667156933
+      },
+      {
+        "t_s": 10.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.479278333543334,
+        "p99_ms": 14.485774336208124
+      },
+      {
+        "t_s": 11.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.28633500248543,
+        "p99_ms": 6.740199667547131
+      },
+      {
+        "t_s": 12.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 4.551929669105448,
+        "p99_ms": 86.2465776699537
+      },
+      {
+        "t_s": 13.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.254027669754578,
+        "p99_ms": 12.870572332758456
+      },
+      {
+        "t_s": 14.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.667421668069437,
+        "p99_ms": 13.29700900168973
+      },
+      {
+        "t_s": 15.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.5949103366874624,
+        "p99_ms": 9.543977335852105
+      },
+      {
+        "t_s": 16.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.1522923345619347,
+        "p99_ms": 5.941566669207532
+      },
+      {
+        "t_s": 17.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.150853000988718,
+        "p99_ms": 6.815171669586562
+      },
+      {
+        "t_s": 18.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.297724666481372,
+        "p99_ms": 7.722121667029569
+      },
+      {
+        "t_s": 19.0,
+        "sent": 1500,
+        "answers": {
+          "sold_out": 1500
+        },
+        "retries": 0,
+        "p50_ms": 3.8174396686372347,
+        "p99_ms": 9.535541335935704
+      },
+      {
+        "t_s": 20.0,
+        "sent": 1,
+        "answers": {
+          "sold_out": 1
+        },
+        "retries": 0,
+        "p50_ms": 8.10107800134574,
+        "p99_ms": 8.10107800134574
+      }
+    ],
+    "probes": 90,
+    "server_counters": {
+      "claims": 32,
+      "sold_out_fast": 10284,
+      "blocking_fallbacks": 10,
+      "sold_out_checks": 10
+    }
+  },
+  "checks": [
+    {
+      "id": "I1",
+      "name": "Never sell more tickets than exist",
+      "passed": true,
+      "detail": "100 confirmed, 100 in /status, total 100",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I2",
+      "name": "Never issue the same ticket number twice",
+      "passed": true,
+      "detail": "every ticket number has exactly one holder",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I3",
+      "name": "A repeated request_id gets one ticket, not two",
+      "passed": true,
+      "detail": "50 duplicate/replayed requests, none produced a second ticket",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I4",
+      "name": "/status count matches the tickets actually issued",
+      "passed": true,
+      "detail": "sold=100 = 100 holders, every confirmed ticket present",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U1",
+      "name": "One ticket per user (product rule D3)",
+      "passed": true,
+      "detail": "no user holds two tickets",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U2",
+      "name": "A winner's request_id reused by another user is never given a ticket (422)",
+      "passed": true,
+      "detail": "20 conflicting requests: 20 rejected (422), 0 refused otherwise (e.g. 409), 0 never got a definite answer (503/timeout), 0 given a ticket",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U3",
+      "name": "Nobody is told 'sold out' while tickets remain",
+      "passed": true,
+      "detail": "29908 sold-out answers, 100/100 issued",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U4",
+      "name": "Every response belongs to this sale (no reset mid-run)",
+      "passed": true,
+      "detail": "all responses epoch 1062",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U5",
+      "name": "A buyer who holds a ticket is never told 'sold out'",
+      "passed": true,
+      "detail": "60 repeat requests from holders, none told 'sold out'",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "A2",
+      "name": "Orphaned tickets (sold, but the buyer was never told)",
+      "passed": null,
+      "detail": "0 tickets in /status were never confirmed to their buyer",
+      "examples": [],
+      "verdict": "INFO"
+    }
+  ],
+  "status": {
+    "epoch": 1062,
+    "total": 100,
+    "sold": 100,
+    "holders": [
+      {
+        "ticket_no": 1,
+        "user_id": "u000000"
+      },
+      {
+        "ticket_no": 2,
+        "user_id": "u000016"
+      },
+      {
+        "ticket_no": 3,
+        "user_id": "u000002"
+      },
+      {
+        "ticket_no": 4,
+        "user_id": "u000008"
+      },
+      {
+        "ticket_no": 5,
+        "user_id": "u000010"
+      },
+      {
+        "ticket_no": 6,
+        "user_id": "u000012"
+      },
+      {
+        "ticket_no": 7,
+        "user_id": "u000018"
+      },
+      {
+        "ticket_no": 8,
+        "user_id": "u000009"
+      },
+      {
+        "ticket_no": 9,
+        "user_id": "u000020"
+      },
+      {
+        "ticket_no": 10,
+        "user_id": "u000024"
+      },
+      {
+        "ticket_no": 11,
+        "user_id": "u000025"
+      },
+      {
+        "ticket_no": 12,
+        "user_id": "u000028"
+      },
+      {
+        "ticket_no": 13,
+        "user_id": "u000004"
+      },
+      {
+        "ticket_no": 14,
+        "user_id": "u000003"
+      },
+      {
+        "ticket_no": 15,
+        "user_id": "u000023"
+      },
+      {
+        "ticket_no": 16,
+        "user_id": "u000017"
+      },
+      {
+        "ticket_no": 17,
+        "user_id": "u000015"
+      },
+      {
+        "ticket_no": 18,
+        "user_id": "u000026"
+      },
+      {
+        "ticket_no": 19,
+        "user_id": "u000011"
+      },
+      {
+        "ticket_no": 20,
+        "user_id": "u000001"
+      },
+      {
+        "ticket_no": 21,
+        "user_id": "u000013"
+      },
+      {
+        "ticket_no": 22,
+        "user_id": "u000033"
+      },
+      {
+        "ticket_no": 23,
+        "user_id": "u000019"
+      },
+      {
+        "ticket_no": 24,
+        "user_id": "u000022"
+      },
+      {
+        "ticket_no": 25,
+        "user_id": "u000034"
+      },
+      {
+        "ticket_no": 26,
+        "user_id": "u000029"
+      },
+      {
+        "ticket_no": 27,
+        "user_id": "u000032"
+      },
+      {
+        "ticket_no": 28,
+        "user_id": "u000006"
+      },
+      {
+        "ticket_no": 29,
+        "user_id": "u000030"
+      },
+      {
+        "ticket_no": 30,
+        "user_id": "u000014"
+      },
+      {
+        "ticket_no": 31,
+        "user_id": "u000007"
+      },
+      {
+        "ticket_no": 32,
+        "user_id": "u000021"
+      },
+      {
+        "ticket_no": 33,
+        "user_id": "u000027"
+      },
+      {
+        "ticket_no": 34,
+        "user_id": "u000044"
+      },
+      {
+        "ticket_no": 35,
+        "user_id": "u000047"
+      },
+      {
+        "ticket_no": 36,
+        "user_id": "u000038"
+      },
+      {
+        "ticket_no": 37,
+        "user_id": "u000043"
+      },
+      {
+        "ticket_no": 38,
+        "user_id": "u000031"
+      },
+      {
+        "ticket_no": 39,
+        "user_id": "u000061"
+      },
+      {
+        "ticket_no": 40,
+        "user_id": "u000066"
+      },
+      {
+        "ticket_no": 41,
+        "user_id": "u000068"
+      },
+      {
+        "ticket_no": 42,
+        "user_id": "u000062"
+      },
+      {
+        "ticket_no": 43,
+        "user_id": "u000056"
+      },
+      {
+        "ticket_no": 44,
+        "user_id": "u000077"
+      },
+      {
+        "ticket_no": 45,
+        "user_id": "u000065"
+      },
+      {
+        "ticket_no": 46,
+        "user_id": "u000063"
+      },
+      {
+        "ticket_no": 47,
+        "user_id": "u000072"
+      },
+      {
+        "ticket_no": 48,
+        "user_id": "u000073"
+      },
+      {
+        "ticket_no": 49,
+        "user_id": "u000126"
+      },
+      {
+        "ticket_no": 50,
+        "user_id": "u000123"
+      },
+      {
+        "ticket_no": 51,
+        "user_id": "u000088"
+      },
+      {
+        "ticket_no": 52,
+        "user_id": "u000076"
+      },
+      {
+        "ticket_no": 53,
+        "user_id": "u000086"
+      },
+      {
+        "ticket_no": 54,
+        "user_id": "u000124"
+      },
+      {
+        "ticket_no": 55,
+        "user_id": "u000121"
+      },
+      {
+        "ticket_no": 56,
+        "user_id": "u000118"
+      },
+      {
+        "ticket_no": 57,
+        "user_id": "u000122"
+      },
+      {
+        "ticket_no": 58,
+        "user_id": "u000119"
+      },
+      {
+        "ticket_no": 59,
+        "user_id": "u000116"
+      },
+      {
+        "ticket_no": 60,
+        "user_id": "u000158"
+      },
+      {
+        "ticket_no": 61,
+        "user_id": "u000117"
+      },
+      {
+        "ticket_no": 62,
+        "user_id": "u000090"
+      },
+      {
+        "ticket_no": 63,
+        "user_id": "u000203"
+      },
+      {
+        "ticket_no": 64,
+        "user_id": "u000049"
+      },
+      {
+        "ticket_no": 65,
+        "user_id": "u000095"
+      },
+      {
+        "ticket_no": 66,
+        "user_id": "u000050"
+      },
+      {
+        "ticket_no": 67,
+        "user_id": "u000069"
+      },
+      {
+        "ticket_no": 68,
+        "user_id": "u000239"
+      },
+      {
+        "ticket_no": 69,
+        "user_id": "u000091"
+      },
+      {
+        "ticket_no": 70,
+        "user_id": "u000147"
+      },
+      {
+        "ticket_no": 71,
+        "user_id": "u000161"
+      },
+      {
+        "ticket_no": 72,
+        "user_id": "u000067"
+      },
+      {
+        "ticket_no": 73,
+        "user_id": "u000064"
+      },
+      {
+        "ticket_no": 74,
+        "user_id": "u000167"
+      },
+      {
+        "ticket_no": 75,
+        "user_id": "u000130"
+      },
+      {
+        "ticket_no": 76,
+        "user_id": "u000179"
+      },
+      {
+        "ticket_no": 77,
+        "user_id": "u000101"
+      },
+      {
+        "ticket_no": 78,
+        "user_id": "u000160"
+      },
+      {
+        "ticket_no": 79,
+        "user_id": "u000164"
+      },
+      {
+        "ticket_no": 80,
+        "user_id": "u000162"
+      },
+      {
+        "ticket_no": 81,
+        "user_id": "u000083"
+      },
+      {
+        "ticket_no": 82,
+        "user_id": "u000240"
+      },
+      {
+        "ticket_no": 83,
+        "user_id": "u000058"
+      },
+      {
+        "ticket_no": 84,
+        "user_id": "u000059"
+      },
+      {
+        "ticket_no": 85,
+        "user_id": "u000102"
+      },
+      {
+        "ticket_no": 86,
+        "user_id": "u000262"
+      },
+      {
+        "ticket_no": 87,
+        "user_id": "u000267"
+      },
+      {
+        "ticket_no": 88,
+        "user_id": "u000266"
+      },
+      {
+        "ticket_no": 89,
+        "user_id": "u000268"
+      },
+      {
+        "ticket_no": 90,
+        "user_id": "u000237"
+      },
+      {
+        "ticket_no": 91,
+        "user_id": "u000097"
+      },
+      {
+        "ticket_no": 92,
+        "user_id": "u000232"
+      },
+      {
+        "ticket_no": 93,
+        "user_id": "u000082"
+      },
+      {
+        "ticket_no": 94,
+        "user_id": "u000151"
+      },
+      {
+        "ticket_no": 95,
+        "user_id": "u000129"
+      },
+      {
+        "ticket_no": 96,
+        "user_id": "u000274"
+      },
+      {
+        "ticket_no": 97,
+        "user_id": "u000228"
+      },
+      {
+        "ticket_no": 98,
+        "user_id": "u000270"
+      },
+      {
+        "ticket_no": 99,
+        "user_id": "u000278"
+      },
+      {
+        "ticket_no": 100,
+        "user_id": "u000133"
+      }
+    ],
+    "allocator": "skiplocked"
+  }
+}

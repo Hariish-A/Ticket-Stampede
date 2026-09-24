@@ -61,13 +61,32 @@ services:
     ports:
       - "${SELLER1_PORT:-8001}:8000"  # host port only for manual curl; the buyer uses the compose network
 
-  # nginx: client-calibration target on :8081 (M3); load balancer on :8080 from M8.
+  # TF1 (M8): two more identical instances. No host ports -- reach them via lb.
+  seller2:
+    <<: *seller
+  seller3:
+    <<: *seller
+
+  # nginx: load balancer over seller1-3 on :8080 (M8); client-calibration target
+  # on :8081 (M3). nginx resolves the seller hostnames once, at startup. A
+  # recreated seller that comes back on a *different* IP would be unreachable
+  # until lb restarts. (Tested in M8: Docker reused the same IP, so it did not
+  # bite; the scripts restart lb after recreating sellers anyway, as insurance.)
   lb:
     image: nginx:1.27-alpine
     volumes:
       - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
     ulimits:
       nofile: 65535
+    ports:
+      - "${LB_PORT:-8080}:8080"
+    depends_on:
+      seller1:
+        condition: service_healthy
+      seller2:
+        condition: service_healthy
+      seller3:
+        condition: service_healthy
 
   # Allocator integration tests against the real Postgres.
   seller-tests:

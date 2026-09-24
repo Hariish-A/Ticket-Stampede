@@ -1,0 +1,827 @@
+{
+  "meta": {
+    "scenario": "sweep-tf1-5000",
+    "target": "http://lb:8080",
+    "allocator": "skiplocked",
+    "mode": "open-loop",
+    "processes": 8,
+    "tickets": 100,
+    "requests": 75000,
+    "burst": 0,
+    "rate": 5000.0,
+    "seed": 1,
+    "started_utc": "2026-09-24T18:11:58+00:00",
+    "retry_unknown": 0,
+    "retry_rate": 0,
+    "fault": null,
+    "args": {
+      "command": "run",
+      "target": "http://lb:8080",
+      "processes": 8,
+      "max_inflight": 2000,
+      "timeout": 10.0,
+      "out": "results",
+      "scenario": "sweep-tf1-5000",
+      "tickets": 100,
+      "requests": 75000,
+      "burst": 0,
+      "rate": 5000.0,
+      "concurrency": null,
+      "dup_concurrent": 0,
+      "dup_sequential": 0,
+      "replay_after": 50,
+      "new_rid": 20,
+      "rid_conflict": 20,
+      "audit_interval": 0.0,
+      "seed": 1,
+      "no_reset": false,
+      "expect_allocator": "skiplocked",
+      "retry_unknown": 0,
+      "retry_rate": 0,
+      "stall_at": null,
+      "stall_for": 10.0,
+      "stall_latency_ms": 3000,
+      "toxiproxy": "http://toxiproxy:8474",
+      "toxiproxy_proxy": "postgres",
+      "fault_file": null
+    }
+  },
+  "stats": {
+    "requests_sent": 75000,
+    "responses": 73671,
+    "no_response": 1329,
+    "window_s": 15.66,
+    "throughput_rps": 4704.3,
+    "latency_ms": {
+      "count": 73671,
+      "p50": 326.1973150038102,
+      "p90": 8706.10758100156,
+      "p99": 10515.3144169999,
+      "max": 10959.637537001981
+    },
+    "service_ms": {
+      "count": 73671,
+      "p50": 142.06440199995995,
+      "p90": 8702.271350997762,
+      "p99": 10475.478189000569,
+      "max": 10923.913758000708
+    },
+    "send_lag_ms": {
+      "count": 75000,
+      "p50": 4.277043997717556,
+      "p90": 516.2051170009363,
+      "p99": 922.9166639997857,
+      "max": 1049.8475419990427
+    },
+    "server_ms": {
+      "acq": {
+        "count": 22812,
+        "p50": 0.07,
+        "p90": 840.41,
+        "p99": 994.99,
+        "max": 1007.58
+      },
+      "alloc": {
+        "count": 22812,
+        "p50": 4.96,
+        "p90": 16.88,
+        "p99": 40.23,
+        "max": 143.2
+      },
+      "handler": {
+        "count": 27583,
+        "p50": 43.86,
+        "p90": 1018.8,
+        "p99": 1059.69,
+        "max": 1153.5
+      },
+      "outside_handler": {
+        "count": 27583,
+        "p50": 490.326803000872,
+        "p90": 9769.387090997165,
+        "p99": 10598.1955830005,
+        "max": 10913.993758000708
+      }
+    },
+    "client": {
+      "processes": 8,
+      "cpu_util_per_worker": [
+        0.675,
+        0.656,
+        0.658,
+        0.692,
+        0.671,
+        0.668,
+        0.681,
+        0.677
+      ],
+      "cpu_util_max": 0.6921097090257471
+    },
+    "by_status": {
+      "0": 1329,
+      "200": 100,
+      "409": 22712,
+      "502": 46088,
+      "503": 4771
+    },
+    "by_answer": {
+      "502": 46088,
+      "no_response": 1329,
+      "not_attempted": 4771,
+      "purchased": 100,
+      "sold_out": 22712
+    },
+    "by_kind": {
+      "fresh": 75000
+    },
+    "errors": {
+      "JSONDecodeError": 46088,
+      "TimeoutError": 1329
+    },
+    "first_sold_out_at_s": 0.166,
+    "outcomes": {
+      "buyers": 75000,
+      "final": {
+        "still_unknown": 47417,
+        "purchased": 100,
+        "sold_out": 22712,
+        "turned_away_known": 4771
+      },
+      "had_unclear_answer": 52188,
+      "recovered_by_retry": 0,
+      "bought_on_retry": 0
+    },
+    "timeline": [
+      {
+        "t_s": 0.0,
+        "sent": 4999,
+        "answers": {
+          "502": 398,
+          "purchased": 100,
+          "sold_out": 4381,
+          "not_attempted": 120
+        },
+        "retries": 0,
+        "p50_ms": 1272.5241120024293,
+        "p99_ms": 7780.466136999166
+      },
+      {
+        "t_s": 1.0,
+        "sent": 5000,
+        "answers": {
+          "sold_out": 4828,
+          "not_attempted": 172
+        },
+        "retries": 0,
+        "p50_ms": 7874.79393400281,
+        "p99_ms": 8959.803634999844
+      },
+      {
+        "t_s": 2.0,
+        "sent": 5000,
+        "answers": {
+          "sold_out": 4413,
+          "not_attempted": 587
+        },
+        "retries": 0,
+        "p50_ms": 9010.997698998835,
+        "p99_ms": 9622.741605999181
+      },
+      {
+        "t_s": 3.0,
+        "sent": 5000,
+        "answers": {
+          "sold_out": 3931,
+          "not_attempted": 1017,
+          "no_response": 52
+        },
+        "retries": 0,
+        "p50_ms": 9609.237627999391,
+        "p99_ms": 10366.098629998305
+      },
+      {
+        "t_s": 4.0,
+        "sent": 5000,
+        "answers": {
+          "no_response": 1192,
+          "sold_out": 2661,
+          "not_attempted": 1130,
+          "502": 17
+        },
+        "retries": 0,
+        "p50_ms": 1379.577423002047,
+        "p99_ms": 10763.737287001277
+      },
+      {
+        "t_s": 5.0,
+        "sent": 5000,
+        "answers": {
+          "no_response": 85,
+          "not_attempted": 1351,
+          "sold_out": 1887,
+          "502": 1677
+        },
+        "retries": 0,
+        "p50_ms": 1570.3961770013848,
+        "p99_ms": 10237.933431999409
+      },
+      {
+        "t_s": 6.0,
+        "sent": 5000,
+        "answers": {
+          "502": 3995,
+          "sold_out": 611,
+          "not_attempted": 394
+        },
+        "retries": 0,
+        "p50_ms": 1059.9739920035063,
+        "p99_ms": 2216.817792999791
+      },
+      {
+        "t_s": 7.0,
+        "sent": 5000,
+        "answers": {
+          "502": 5000
+        },
+        "retries": 0,
+        "p50_ms": 827.0952940001735,
+        "p99_ms": 1317.1142419996613
+      },
+      {
+        "t_s": 8.0,
+        "sent": 5000,
+        "answers": {
+          "502": 5000
+        },
+        "retries": 0,
+        "p50_ms": 530.9827079981915,
+        "p99_ms": 1181.5637620020425
+      },
+      {
+        "t_s": 9.0,
+        "sent": 5000,
+        "answers": {
+          "502": 5000
+        },
+        "retries": 0,
+        "p50_ms": 13.777447002212284,
+        "p99_ms": 649.2907640022167
+      },
+      {
+        "t_s": 10.0,
+        "sent": 5000,
+        "answers": {
+          "502": 5000
+        },
+        "retries": 0,
+        "p50_ms": 2.6294889976270497,
+        "p99_ms": 43.57746800087625
+      },
+      {
+        "t_s": 11.0,
+        "sent": 5000,
+        "answers": {
+          "502": 5000
+        },
+        "retries": 0,
+        "p50_ms": 3.0620340039604343,
+        "p99_ms": 99.30202900068252
+      },
+      {
+        "t_s": 12.0,
+        "sent": 5000,
+        "answers": {
+          "502": 5000
+        },
+        "retries": 0,
+        "p50_ms": 1.7012339994835202,
+        "p99_ms": 24.781287003861507
+      },
+      {
+        "t_s": 13.0,
+        "sent": 5000,
+        "answers": {
+          "502": 5000
+        },
+        "retries": 0,
+        "p50_ms": 2.1052169977338053,
+        "p99_ms": 56.7270510000526
+      },
+      {
+        "t_s": 14.0,
+        "sent": 5000,
+        "answers": {
+          "502": 5000
+        },
+        "retries": 0,
+        "p50_ms": 2.7000970003427938,
+        "p99_ms": 68.46280800164095
+      },
+      {
+        "t_s": 15.0,
+        "sent": 1,
+        "answers": {
+          "502": 1
+        },
+        "retries": 0,
+        "p50_ms": 46.86927000147989,
+        "p99_ms": 46.86927000147989
+      }
+    ],
+    "probes": 90,
+    "server_counters": {
+      "claims": 40,
+      "sold_out_fast": 8134
+    }
+  },
+  "checks": [
+    {
+      "id": "I1",
+      "name": "Never sell more tickets than exist",
+      "passed": true,
+      "detail": "100 confirmed, 100 in /status, total 100",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I2",
+      "name": "Never issue the same ticket number twice",
+      "passed": true,
+      "detail": "every ticket number has exactly one holder",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I3",
+      "name": "A repeated request_id gets one ticket, not two",
+      "passed": true,
+      "detail": "50 duplicate/replayed requests, none produced a second ticket",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "I4",
+      "name": "/status count matches the tickets actually issued",
+      "passed": true,
+      "detail": "sold=100 = 100 holders, every confirmed ticket present",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U1",
+      "name": "One ticket per user (product rule D3)",
+      "passed": true,
+      "detail": "no user holds two tickets",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U2",
+      "name": "A winner's request_id reused by another user is never given a ticket (422)",
+      "passed": true,
+      "detail": "20 conflicting requests: 0 rejected (422), 0 refused otherwise (e.g. 409), 20 never got a definite answer (503/timeout), 0 given a ticket",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U3",
+      "name": "Nobody is told 'sold out' while tickets remain",
+      "passed": true,
+      "detail": "22712 sold-out answers, 100/100 issued",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U4",
+      "name": "Every response belongs to this sale (no reset mid-run)",
+      "passed": true,
+      "detail": "all responses epoch 1056",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "U5",
+      "name": "A buyer who holds a ticket is never told 'sold out'",
+      "passed": true,
+      "detail": "60 repeat requests from holders, none told 'sold out'",
+      "examples": [],
+      "verdict": "PASS"
+    },
+    {
+      "id": "A2",
+      "name": "Orphaned tickets (sold, but the buyer was never told)",
+      "passed": null,
+      "detail": "0 tickets in /status were never confirmed to their buyer",
+      "examples": [],
+      "verdict": "INFO"
+    }
+  ],
+  "status": {
+    "epoch": 1056,
+    "total": 100,
+    "sold": 100,
+    "holders": [
+      {
+        "ticket_no": 1,
+        "user_id": "u000036"
+      },
+      {
+        "ticket_no": 2,
+        "user_id": "u000062"
+      },
+      {
+        "ticket_no": 3,
+        "user_id": "u000084"
+      },
+      {
+        "ticket_no": 4,
+        "user_id": "u000014"
+      },
+      {
+        "ticket_no": 5,
+        "user_id": "u000044"
+      },
+      {
+        "ticket_no": 6,
+        "user_id": "u000042"
+      },
+      {
+        "ticket_no": 7,
+        "user_id": "u000052"
+      },
+      {
+        "ticket_no": 8,
+        "user_id": "u000060"
+      },
+      {
+        "ticket_no": 9,
+        "user_id": "u000006"
+      },
+      {
+        "ticket_no": 10,
+        "user_id": "u000012"
+      },
+      {
+        "ticket_no": 11,
+        "user_id": "u000004"
+      },
+      {
+        "ticket_no": 12,
+        "user_id": "u000028"
+      },
+      {
+        "ticket_no": 13,
+        "user_id": "u000086"
+      },
+      {
+        "ticket_no": 14,
+        "user_id": "u000110"
+      },
+      {
+        "ticket_no": 15,
+        "user_id": "u000076"
+      },
+      {
+        "ticket_no": 16,
+        "user_id": "u000020"
+      },
+      {
+        "ticket_no": 17,
+        "user_id": "u000108"
+      },
+      {
+        "ticket_no": 18,
+        "user_id": "u000008"
+      },
+      {
+        "ticket_no": 19,
+        "user_id": "u000021"
+      },
+      {
+        "ticket_no": 20,
+        "user_id": "u000034"
+      },
+      {
+        "ticket_no": 21,
+        "user_id": "u000124"
+      },
+      {
+        "ticket_no": 22,
+        "user_id": "u000116"
+      },
+      {
+        "ticket_no": 23,
+        "user_id": "u000082"
+      },
+      {
+        "ticket_no": 24,
+        "user_id": "u000220"
+      },
+      {
+        "ticket_no": 25,
+        "user_id": "u000070"
+      },
+      {
+        "ticket_no": 26,
+        "user_id": "u000180"
+      },
+      {
+        "ticket_no": 27,
+        "user_id": "u000156"
+      },
+      {
+        "ticket_no": 28,
+        "user_id": "u000024"
+      },
+      {
+        "ticket_no": 29,
+        "user_id": "u000201"
+      },
+      {
+        "ticket_no": 30,
+        "user_id": "u000146"
+      },
+      {
+        "ticket_no": 31,
+        "user_id": "u000074"
+      },
+      {
+        "ticket_no": 32,
+        "user_id": "u000228"
+      },
+      {
+        "ticket_no": 33,
+        "user_id": "u000132"
+      },
+      {
+        "ticket_no": 34,
+        "user_id": "u000238"
+      },
+      {
+        "ticket_no": 35,
+        "user_id": "u000188"
+      },
+      {
+        "ticket_no": 36,
+        "user_id": "u000252"
+      },
+      {
+        "ticket_no": 37,
+        "user_id": "u000009"
+      },
+      {
+        "ticket_no": 38,
+        "user_id": "u000230"
+      },
+      {
+        "ticket_no": 39,
+        "user_id": "u000049"
+      },
+      {
+        "ticket_no": 40,
+        "user_id": "u000244"
+      },
+      {
+        "ticket_no": 41,
+        "user_id": "u000112"
+      },
+      {
+        "ticket_no": 42,
+        "user_id": "u000209"
+      },
+      {
+        "ticket_no": 43,
+        "user_id": "u000081"
+      },
+      {
+        "ticket_no": 44,
+        "user_id": "u000217"
+      },
+      {
+        "ticket_no": 45,
+        "user_id": "u000208"
+      },
+      {
+        "ticket_no": 46,
+        "user_id": "u000225"
+      },
+      {
+        "ticket_no": 47,
+        "user_id": "u000033"
+      },
+      {
+        "ticket_no": 48,
+        "user_id": "u000216"
+      },
+      {
+        "ticket_no": 49,
+        "user_id": "u000092"
+      },
+      {
+        "ticket_no": 50,
+        "user_id": "u000094"
+      },
+      {
+        "ticket_no": 51,
+        "user_id": "u000258"
+      },
+      {
+        "ticket_no": 52,
+        "user_id": "u000242"
+      },
+      {
+        "ticket_no": 53,
+        "user_id": "u000224"
+      },
+      {
+        "ticket_no": 54,
+        "user_id": "u000236"
+      },
+      {
+        "ticket_no": 55,
+        "user_id": "u000102"
+      },
+      {
+        "ticket_no": 56,
+        "user_id": "u000247"
+      },
+      {
+        "ticket_no": 57,
+        "user_id": "u000250"
+      },
+      {
+        "ticket_no": 58,
+        "user_id": "u000254"
+      },
+      {
+        "ticket_no": 59,
+        "user_id": "u000210"
+      },
+      {
+        "ticket_no": 60,
+        "user_id": "u000265"
+      },
+      {
+        "ticket_no": 61,
+        "user_id": "u000285"
+      },
+      {
+        "ticket_no": 62,
+        "user_id": "u000215"
+      },
+      {
+        "ticket_no": 63,
+        "user_id": "u000118"
+      },
+      {
+        "ticket_no": 64,
+        "user_id": "u000260"
+      },
+      {
+        "ticket_no": 65,
+        "user_id": "u000269"
+      },
+      {
+        "ticket_no": 66,
+        "user_id": "u000304"
+      },
+      {
+        "ticket_no": 67,
+        "user_id": "u000148"
+      },
+      {
+        "ticket_no": 68,
+        "user_id": "u000279"
+      },
+      {
+        "ticket_no": 69,
+        "user_id": "u000274"
+      },
+      {
+        "ticket_no": 70,
+        "user_id": "u000273"
+      },
+      {
+        "ticket_no": 71,
+        "user_id": "u000134"
+      },
+      {
+        "ticket_no": 72,
+        "user_id": "u000123"
+      },
+      {
+        "ticket_no": 73,
+        "user_id": "u000240"
+      },
+      {
+        "ticket_no": 74,
+        "user_id": "u000232"
+      },
+      {
+        "ticket_no": 75,
+        "user_id": "u000268"
+      },
+      {
+        "ticket_no": 76,
+        "user_id": "u000326"
+      },
+      {
+        "ticket_no": 77,
+        "user_id": "u000237"
+      },
+      {
+        "ticket_no": 78,
+        "user_id": "u000117"
+      },
+      {
+        "ticket_no": 79,
+        "user_id": "u000255"
+      },
+      {
+        "ticket_no": 80,
+        "user_id": "u000160"
+      },
+      {
+        "ticket_no": 81,
+        "user_id": "u000175"
+      },
+      {
+        "ticket_no": 82,
+        "user_id": "u000365"
+      },
+      {
+        "ticket_no": 83,
+        "user_id": "u000152"
+      },
+      {
+        "ticket_no": 84,
+        "user_id": "u000223"
+      },
+      {
+        "ticket_no": 85,
+        "user_id": "u000382"
+      },
+      {
+        "ticket_no": 86,
+        "user_id": "u000418"
+      },
+      {
+        "ticket_no": 87,
+        "user_id": "u000308"
+      },
+      {
+        "ticket_no": 88,
+        "user_id": "u000221"
+      },
+      {
+        "ticket_no": 89,
+        "user_id": "u000348"
+      },
+      {
+        "ticket_no": 90,
+        "user_id": "u000302"
+      },
+      {
+        "ticket_no": 91,
+        "user_id": "u000257"
+      },
+      {
+        "ticket_no": 92,
+        "user_id": "u000404"
+      },
+      {
+        "ticket_no": 93,
+        "user_id": "u000248"
+      },
+      {
+        "ticket_no": 94,
+        "user_id": "u000399"
+      },
+      {
+        "ticket_no": 95,
+        "user_id": "u000444"
+      },
+      {
+        "ticket_no": 96,
+        "user_id": "u000314"
+      },
+      {
+        "ticket_no": 97,
+        "user_id": "u000286"
+      },
+      {
+        "ticket_no": 98,
+        "user_id": "u000413"
+      },
+      {
+        "ticket_no": 99,
+        "user_id": "u000266"
+      },
+      {
+        "ticket_no": 100,
+        "user_id": "u000452"
+      }
+    ],
+    "allocator": "skiplocked"
+  }
+}

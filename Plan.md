@@ -228,6 +228,7 @@ naive_sales(ticket_no int, user_id text, request_id text)       -- NO constraint
 | D25 | "Mid-sale" slowdown uses a 15,000-ticket sale | With 100 tickets the sale ends in ~0.1 s, so a stall at t=5 s would only hit sold-out answers | AI (M6) | 2026-09-24 |
 | D26 | `/buy` never answers 500: any exception becomes result / `unknown` / `not_attempted` depending on how far the request got; the buyer retries any 5xx | The first kill trial produced 500s from an exception type missing from the error list (asyncpg `InternalClientError` on connection release). The buyer treated 500 as final, leaving 2 orphans. | AI (M7) | 2026-09-24 |
 | D27 | TF2 is proved with a **control run** (`synchronous_commit=off`) that must fail | It lost 6 confirmed sales and resold them. `/status` looked perfect; only the buyer's ledger caught it. Without the control, "0 phantoms" would be unfalsified. | AI (M7) | 2026-09-24 |
+| D28 | TF1: seller1–3 behind nginx `least_conn` + keep-alive; no POST resend (`proxy_next_upstream error timeout`); scripts parametrised by `TOPOLOGY=single\|tf1` (`scripts/lib.sh`) | Stateless sellers; the invariants live in Postgres. Every experiment reruns unchanged against 3 instances. | AI (M8) | 2026-09-24 |
 | D10 ✔ | Confirmed by M5 measurement: the host port path adds about 1 ms p50, 1.5–4 ms p99 at 800 req/s | 3 alternating rounds | Measured (M5) | 2026-09-24 |
 
 ## 5. Testing and verification strategy
@@ -359,7 +360,7 @@ Rules:
 - Every confirmed ticket survives, including runs where the kill lands during a commit.
 - DECISIONS.md explains the durability argument: confirmation is only sent after a durable WAL commit.
 
-### M8: Three instances behind nginx (TF1) · ~0.5 h
+### M8: Three instances behind nginx (TF1) · ~0.5 h · ✅ DONE 2026-09-24 (results/M8-tf1.md)
 **Build**
 - seller2 and seller3.
 - An nginx upstream using `least_conn` and keepalive.
