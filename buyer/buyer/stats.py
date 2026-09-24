@@ -1,6 +1,6 @@
 from collections import Counter
 
-from .runner import Attempt, WorkerResult
+from .runner import Attempt, WorkerResult, retryable
 
 
 def percentile(sorted_values: list[float], q: float) -> float | None:
@@ -57,7 +57,7 @@ def buyer_outcomes(attempts: list[Attempt]) -> dict:
         by_key.setdefault((a.user_id, a.request_id), []).append(a)
     final, recovered, bought_on_retry, retried = Counter(), 0, 0, 0
     for tries in by_key.values():
-        definite = [a for a in tries if a.status not in (0, 503)]
+        definite = [a for a in tries if not retryable(a)]
         if definite:
             final[answer_class(definite[-1])] += 1
         elif all(a.answer == "not_attempted" for a in tries):
@@ -66,7 +66,7 @@ def buyer_outcomes(attempts: list[Attempt]) -> dict:
             final["turned_away_known"] += 1
         else:
             final["still_unknown"] += 1
-        first_unclear = next((i for i, a in enumerate(tries) if a.status in (0, 503)), None)
+        first_unclear = next((i for i, a in enumerate(tries) if retryable(a)), None)
         if first_unclear is None:
             continue
         retried += 1
@@ -77,6 +77,32 @@ def buyer_outcomes(attempts: list[Attempt]) -> dict:
             bought_on_retry += 1  # nothing had committed; the retry bought afresh
     return {"buyers": len(by_key), "final": dict(final), "had_unclear_answer": retried,
             "recovered_by_retry": recovered, "bought_on_retry": bought_on_retry}
+
+
+def inflight_at(attempts: list[Attempt], t_fault: float) -> dict:
+    """Requests that were on the wire at the instant of a fault (sent before, answered
+    after) and what became of each buyer. This is the direct evidence that a kill
+    landed *during* purchases -- some of which committed and some of which did not."""
+    by_key: dict[tuple, list[Attempt]] = {}
+    for a in sorted(attempts, key=lambda a: (a.sent, a.attempt_no)):
+        by_key.setdefault((a.user_id, a.request_id), []).append(a)
+    caught = [a for a in attempts if a.sent <= t_fault < a.done]
+    fates = Counter()
+    for a in caught:
+        later = [b for b in by_key[(a.user_id, a.request_id)] if b.sent > a.sent]
+        if a.confirmed:
+            fates["answered: purchased (commit acknowledged before the kill)"] += 1
+        elif not retryable(a):
+            fates[f"answered: {answer_class(a)}"] += 1
+        elif any(b.confirmed and b.replayed for b in later):
+            fates["unclear, then retry found it: HAD committed"] += 1
+        elif any(b.confirmed for b in later):
+            fates["unclear, then bought on retry: had NOT committed"] += 1
+        elif any(b.status == 409 for b in later):
+            fates["unclear, then sold out on retry"] += 1
+        else:
+            fates["unclear, never resolved"] += 1
+    return {"in_flight": len(caught), "fates": dict(fates)}
 
 
 def summarize(attempts: list[Attempt], t0: float, workers: list[WorkerResult] = ()) -> dict:

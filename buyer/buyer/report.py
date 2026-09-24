@@ -69,6 +69,11 @@ def render_markdown(meta: dict, stats: dict, checks: list[Check]) -> str:
                      f"send lag p99 {_ms(stats['send_lag_ms']['p99'])} ms. "
                      f"A worker near 100% or a growing send lag means the client, not the seller, was the limit.")
     lines += render_outcomes(stats)
+    af = stats.get("at_fault")
+    if af:
+        lines += ["", "## Requests in flight at the instant of the fault", "",
+                  f"{af['in_flight']} requests had been sent but not yet answered when the fault hit. What became of each:",
+                  ""] + [f"- {fate}: **{n}**" for fate, n in sorted(af["fates"].items(), key=lambda x: -x[1])]
     lines += render_timeline(stats, meta.get("fault"))
     return "\n".join(lines) + "\n"
 

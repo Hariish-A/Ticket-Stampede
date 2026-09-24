@@ -4,16 +4,15 @@
 > Append new entries at the bottom of the log. Keep "Current state" and "Next up" current.
 
 ## Current state
-- **Phase:** M6 is done (the datastore goes slow for 10 s: `results/M6-slowdb.md`). M7 is next, when the user says "start M7".
+- **Phase:** M7 is done (TF2: kill the datastore mid-sale: `results/M7-killdb.md`). M8 is next, when the user says "start M8".
 - **Runs?**
-  - `./scripts/test.sh`: 36 buyer unit + 34 seller integration tests, all passing.
-  - New: `./scripts/slowdb.sh` (5 variants).
-- **Headline:** the invariants hold through the stall. The real damage is a retry storm: a metastable outage, 1,693 orphans, 6,856 buyers never answered. A client retry budget eliminates it; seller fail-fast keeps the seller responsive.
+  - `./scripts/test.sh`: 39 buyer unit + 34 seller integration tests, all passing.
+  - New: `./scripts/killdb.sh` (3 normal runs + a `synchronous_commit=off` control).
+- **Headline:** 3 out of 3 kills mid-sale: every invariant holds, 0 phantoms, 0 orphans, and 15–32 in-flight purchases per run had committed and were recovered by retry. The control lost 6 confirmed sales and resold them. `/status` looked perfect; only the buyer's ledger caught it.
 - **Repo:** https://github.com/Hariish-A/Ticket-Stampede (private), branch `main`.
 
 ## Next up
-1. The user decides D24: turn seller fail-fast on by default, and at what limit? (It also sheds part of the brief's opening burst.)
-2. M7: kill Postgres mid-sale and restart it (TF2). Use `--retry-unknown` plus `--retry-rate` in the buyer. Check that the postgres restart policy doesn't auto-restart a *killed* postgres (M3 note). Watch the cold start (M5).
+1. M8 (TF1): seller2 + seller3 behind nginx (`least_conn`, keepalive); rerun c1, slowdb and killdb through nginx; compare requests/s for 1 vs 3 instances. (D24 fail-fast is still undecided; shedding at nginx is one of the options.)
 
 ## Known weaknesses / open issues
 _(These feed into the "where it breaks" section of DECISIONS.md.)_
@@ -24,10 +23,13 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - (M1 → fixed in M3) **The single-process buyer lagged during the opening burst** (send lag p99 71–98 ms, max 240–310 ms). With 4 processes: p99 about 12 ms, max 70–90 ms, workers at 12% CPU.
 - (M3) **Client ceiling depends on the machine, and scaling is sub-linear**: 4.8k / 8.2k / 12.7k / 20.7k req/s at 1 / 2 / 4 / 8 processes, on a 16-CPU Docker Desktop VM shared with nginx and the seller. Every worker was at about 100% CPU and nginx peaked at 155%, so the limit is the client's Python. The stampede runs offer about 1k req/s, far below the ceiling.
 - (M3) **The client reuses keep-alive connections; real buyers wouldn't.** 50k real users means 50k separate TCP connections and TLS handshakes. Our workers reuse pooled connections, which makes the seller's job easier than reality. Deliberate: one connection per request would exhaust the client's ephemeral ports (about 28k) and measure the client's connect cost instead.
+- (M7 finding) **The live auditor alone misses lost commits.** In the sync-off control, `/status` was consistent after recovery and A3 passed. The lost sales were visible only in the buyer's ledger (I4 phantoms). The auditor sees only what `/status` showed while it polled.
 - (M3) **The live auditor adds load**: about 10 `/status` requests/s on the seller during the sale. Small, but non-zero.
 - (M1 → fixed in M6, D22) **A pool-acquire timeout answered 503 "unknown", but the outcome is actually known**: the request never reached the database, so nothing happened. M6 should separate "not attempted, safe to retry" from "unknown outcome".
 - (M2) **The safe seller also saturates at the opening burst.** In the C1 skiplocked run, 1,479 of 51k requests got 503 (all `TimeoutError`: waiting more than 1 s for one of 20 pool connections). p99 was 1.5 s and max 2.4 s. No invariant was affected, because those requests never reached the database. M5 will find the bottleneck; candidates are single-process Python CPU, pool size, and the sold-out path's 4 queries (lookup, skip claim, blocking claim, re-lookup).
 - (M2) **/reset during live traffic isn't safe for the epoch.** A buy whose statement snapshot predates a concurrent TRUNCATE can see an empty `tickets` table and answer a spurious "sold out" for the new epoch. U4 and U3 would flag it. Resetting mid-sale is outside the brief; not handled.
+- (M7) **Crash safety, not power-loss durability**: `docker kill` is a process crash. WAL already in the kernel survives it even unflushed. Power-cut durability (disk honours fsync) is untested and untestable on Docker Desktop's virtual disk.
+- (M7) **Recovery is slow for buyers**: 9–20 s from kill to healthy (5 s deliberate). The sale sold out at 49–85 s instead of about 15 s. Every buyer eventually got an answer only because retries (10, budget 200/s) outlast the outage. A buyer who gives up keeps an unknown orphan.
 - (M6) **Result timestamps are Docker-VM time, not wall time.** The Docker Desktop (WSL2) VM clock drifted about 3 h behind the host, probably after host sleep. Folder names in `results/` use the VM clock. In-run measurements use a monotonic clock and are unaffected, unless the host suspends mid-run (that would show as a huge latency spike and client send lag in the report).
 - (M6) **Retry storm → metastable failure.** Without a client retry budget, a 10 s datastore stall keeps one seller overloaded for 40 s+ after the stall ends (offered ~3k req/s vs ~1.5k capacity). Real browsers have no retry budget, which is why seller-side shedding (D24) matters.
 - (M6) **Orphans need retries to be recovered.** Committed-but-unconfirmed tickets are only discovered when the buyer retries with the same request_id. A buyer who gives up keeps an orphan they don't know about (1,693 in the baseline). A real system would need a "my tickets" lookup, or notification by user_id.
@@ -221,3 +223,15 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
   2. The outcome classification lumped known-not-bought (`not_attempted` only) with unknown.
   3. U2 counted shed 503s as acceptances. While fixing it, a new test found that a leaked ticket on a retry would rebind the request_id and hide the leak; fixed.
 - The AI doubted that server-side shedding would help, because M5 showed the web stack dominates per-request cost. The measurement disagreed: shedding in ASGI, before FastAPI, is cheap (4.5k req/s answered). Recorded as such.
+
+### 2026-09-24 — Session 4 (continued): M7, kill the datastore mid-sale (TF2)
+- The user did not decide D24, so fail-fast stays off by default; still open.
+- Verified the M3 question: `restart: unless-stopped` does not auto-restart a `docker kill`ed postgres.
+- Built:
+  - `scripts/killdb.sh`: SIGKILL postgres mid-sale, restart after 5 s. Events are recorded on the Docker VM clock and passed via `--fault-file`.
+  - Buyer: `faults.external_window`; `stats.inflight_at` (requests in flight at the kill, and whether each had committed); report section; any 5xx is retryable.
+  - Seller: `/buy` never answers 500 (D26).
+- Results: `results/M7-killdb.md`.
+  - 3 out of 3 normal runs: all invariants PASS, 15,000 confirmed = 15,000 in /status, 0 phantoms, 0 orphans; 15–32 in-flight purchases per run had committed and were recovered by retry.
+  - Control (`synchronous_commit=off`): FAIL I1, I2, I4. 6 confirmed sales lost and resold. /status looked perfect; the ledger caught it (D27).
+- **Bug found by the first trial (run discarded with reason):** 500s from asyncpg `InternalClientError` on connection release. The buyer treated 500 as final, leaving 2 orphans. Fixed on both sides.

@@ -68,9 +68,11 @@ class WorkerResult:
 
 
 def retryable(a: Attempt) -> bool:
-    """503 (seller has no definite answer) or no response at all (timeout, reset).
-    Anything else -- purchased, sold out, conflict -- is a definite answer."""
-    return a.status == 503 or a.status == 0
+    """No definite answer: any 5xx (a 500 or 502 says nothing about whether the
+    purchase happened -- M7 caught the buyer treating a 500 as final and leaving
+    2 buyers with tickets they never learned of) or no response at all.
+    Purchased, sold out and conflict are definite."""
+    return a.status == 0 or a.status >= 500
 
 
 def backoff(n: int, rng: random.Random) -> float:

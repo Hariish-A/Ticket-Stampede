@@ -124,7 +124,7 @@ def verify(status: dict, attempts: Iterable[Attempt], total: int, audit=None) ->
     leaked = [a for a in conflict_attempts if a.status == 200]
     rejected = {(a.user_id, a.request_id) for a in conflict_attempts if a.status == 422}
     other_definite = {(a.user_id, a.request_id) for a in conflict_attempts
-                      if a.status not in (0, 200, 422, 503)} - rejected
+                      if 0 < a.status < 500 and a.status not in (200, 422)} - rejected
     undecided = len(conflict_keys - rejected - other_definite - {(a.user_id, a.request_id) for a in leaked})
     checks.append(Check("U2", "A winner's request_id reused by another user is never given a ticket (422)",
                         not leaked if conflict_keys else None,

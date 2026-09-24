@@ -131,7 +131,14 @@ async def buy(body: BuyIn):
             acquired = time.perf_counter()
             result = await app.state.allocator.buy(conn, body.user_id, body.request_id)
             allocated = time.perf_counter()
-    except DB_ERRORS as exc:
+    except Exception as exc:  # noqa: BLE001 -- deliberately total, see below
+        # /buy must never answer 500. A 500 says nothing about whether the
+        # purchase happened, yet clients commonly treat it as final. The first M7
+        # kill run produced exactly that: asyncpg raised InternalClientError while
+        # *releasing* a connection the kill had broken -- a type missing from
+        # DB_ERRORS -- 4 buyers got 500, stopped retrying, and 2 were left holding
+        # tickets they were never told about. Whatever the exception, the answer
+        # is decided by how far the request got, never by the exception's type.
         log_failure("buy", exc)
         if allocated is None:
             # Which 503 depends on how far we got: no connection means nothing

@@ -57,6 +57,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     f.add_argument("--stall-latency-ms", type=int, default=3000, help="added to every response from Postgres")
     f.add_argument("--toxiproxy", default="http://toxiproxy:8474", help="toxiproxy API")
     f.add_argument("--toxiproxy-proxy", default="postgres", help="name of the proxy in front of Postgres")
+    f.add_argument("--fault-file", help="JSON written by an external fault script (scripts/killdb.sh) with "
+                                        "wall-clock events; read after the stampede to place the fault on the timeline")
 
     c = sub.add_parser("calibrate", help="measure the client's own ceiling against a target that answers instantly")
     _common(c, "http://lb:8081")
@@ -135,6 +137,7 @@ async def run(args: argparse.Namespace) -> int:
     mode = f"closed-loop x{args.concurrency}" if args.concurrency else "open-loop"
     print(f"[buyer] phase 1: {len(plan)} requests, {mode}, {args.processes} processes -> {args.target}", file=sys.stderr)
     t0 = time.perf_counter() + coordinator.SPAWN_LEAD_S
+    t0_wall = time.time() + (t0 - time.perf_counter())  # the same instant on the (container) wall clock
     fault_task = None
     if args.stall_at is not None:
         fault_task = asyncio.create_task(faults.latency_window(
@@ -143,6 +146,8 @@ async def run(args: argparse.Namespace) -> int:
                                                         args.concurrency, args.max_inflight,
                                                         retries=args.retry_unknown, retry_rate=args.retry_rate, t0=t0)
     fault = await fault_task if fault_task else None
+    if args.fault_file:
+        fault = faults.external_window(args.fault_file, t0_wall) or fault
     if fault:
         print(f"[buyer] fault: {fault}", file=sys.stderr)
 
@@ -158,6 +163,8 @@ async def run(args: argparse.Namespace) -> int:
     checks = verify.verify(status, attempts, total=args.tickets, audit=audit)
     summary = stats.summarize(stampede, t0, workers)  # load numbers: the stampede only
     summary["probes"] = len(probes)
+    if fault and fault.actual_start_s is not None:
+        summary["at_fault"] = stats.inflight_at(attempts, t0 + fault.actual_start_s)
     metrics_after = await _get_metrics(args.target)
     summary["server_counters"] = {k: v - metrics_before.get(k, 0) for k, v in metrics_after.items()
                                   if v - metrics_before.get(k, 0)}

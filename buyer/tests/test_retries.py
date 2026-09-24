@@ -112,3 +112,41 @@ def test_only_not_attempted_answers_mean_known_not_bought():
     attempts = [att("r5", 503, "not_attempted", t=0), att("r5", 503, "not_attempted", t=1, n=1),
                 att("r6", 503, "not_attempted", t=0), att("r6", 503, "unknown", t=1, n=1)]
     assert buyer_outcomes(attempts)["final"] == {"turned_away_known": 1, "still_unknown": 1}
+
+
+def test_inflight_at_fault_separates_committed_from_not():
+    from buyer.stats import inflight_at
+    attempts = [
+        # sent before the fault at t=5, answered after
+        Attempt(kind=FRESH, user_id="a", request_id="ra", sched=4.9, sent=4.9, done=5.5, status=503, answer="unknown"),
+        Attempt(kind=RETRY, user_id="a", request_id="ra", sched=9, sent=9, done=9.1, status=200, ticket_no=3,
+                replayed=True, attempt_no=1),
+        Attempt(kind=FRESH, user_id="b", request_id="rb", sched=4.95, sent=4.95, done=5.2, status=0),
+        Attempt(kind=RETRY, user_id="b", request_id="rb", sched=9, sent=9, done=9.1, status=200, ticket_no=4,
+                attempt_no=1),
+        Attempt(kind=FRESH, user_id="c", request_id="rc", sched=4.99, sent=4.99, done=5.01, status=200, ticket_no=5),
+        # not in flight
+        Attempt(kind=FRESH, user_id="d", request_id="rd", sched=1, sent=1, done=1.1, status=200, ticket_no=6),
+    ]
+    r = inflight_at(attempts, 5.0)
+    assert r["in_flight"] == 3
+    assert r["fates"] == {"unclear, then retry found it: HAD committed": 1,
+                          "unclear, then bought on retry: had NOT committed": 1,
+                          "answered: purchased (commit acknowledged before the kill)": 1}
+
+
+def test_external_fault_file_is_placed_relative_to_t0(tmp_path):
+    import json
+    from buyer.faults import external_window
+    p = tmp_path / "events.json"
+    p.write_text(json.dumps({"kind": "kill", "detail": "SIGKILL postgres",
+                             "events": {"fault": 1000.0, "restart": 1005.0, "recovered": 1007.5}}))
+    w = external_window(str(p), t0_wall=992.0, wait_s=1)
+    assert (w.kind, w.actual_start_s, w.actual_end_s) == ("kill", 8.0, 15.5)
+    assert external_window(str(tmp_path / "missing.json"), 0, wait_s=0) is None
+
+
+def test_any_5xx_is_unclear_and_retried():
+    assert all(retryable(att("x", s)) for s in (500, 502, 503, 504))
+    o = buyer_outcomes([att("r7", 500, t=0), att("r7", 200, "purchased", 9, replayed=True, t=1, n=1)])
+    assert o["recovered_by_retry"] == 1 and o["final"] == {"purchased": 1}

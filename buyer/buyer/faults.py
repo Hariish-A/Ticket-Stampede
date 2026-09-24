@@ -31,6 +31,29 @@ class FaultWindow:
     error: str | None = None
 
 
+def external_window(path: str, t0_wall: float, wait_s: float = 30.0) -> FaultWindow | None:
+    """A fault driven from outside the buyer (e.g. `docker kill`, which needs the
+    host's Docker CLI). The script records wall-clock times on the container clock
+    -- the same clock as t0_wall -- as {"kind", "detail", "events": {name: epoch_s}}
+    with events "fault" (start) and "recovered" (end)."""
+    import json
+    import os
+
+    deadline = time.monotonic() + wait_s
+    while not os.path.exists(path):
+        if time.monotonic() > deadline:
+            return None
+        time.sleep(0.5)
+    time.sleep(0.2)  # let the writer finish
+    with open(path, encoding="utf-8") as f:
+        d = json.load(f)
+    ev = d.get("events", {})
+    rel = {k: round(v - t0_wall, 3) for k, v in ev.items()}
+    return FaultWindow(d.get("kind", "external"), rel.get("fault"), rel.get("recovered"),
+                       actual_start_s=rel.get("fault"), actual_end_s=rel.get("recovered"),
+                       detail=d.get("detail", "") + f" (events relative to t0: {rel})")
+
+
 async def latency_window(api: str, proxy: str, t0: float, start_s: float, duration_s: float,
                          latency_ms: int) -> FaultWindow:
     w = FaultWindow("latency", start_s, start_s + duration_s,

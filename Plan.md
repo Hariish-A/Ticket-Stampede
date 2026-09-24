@@ -226,6 +226,8 @@ naive_sales(ticket_no int, user_id text, request_id text)       -- NO constraint
 | D23 | The buyer retries unclear answers with the same request_id (`--retry-unknown`, exponential backoff + jitter), optionally under a **retry budget** (`--retry-rate`, token bucket; over-budget retries wait, never dropped). The in-flight slot covers the first attempt only. | Measured: without a budget, a 10 s stall became a metastable ~40 s+ outage (1,693 orphans, 6,856 buyers never answered). With a 200/s budget: 0 orphans, 0 unanswered, sold out 27.9 s vs 51.8 s. | AI (M6), measured | 2026-09-24 |
 | D24 | Seller fail-fast admission (`MAX_INFLIGHT`, a pure ASGI middleware that sheds /buy with an immediate 503) — **implemented, default OFF, pending the user's decision** | Measured: keeps the seller responsive through a retry storm (p99 back to ~300 ms after the stall; orphans 1,693 → 29). But at 64 it would also shed part of the brief's 1,000-request opening burst. | Pending (user) | 2026-09-24 |
 | D25 | "Mid-sale" slowdown uses a 15,000-ticket sale | With 100 tickets the sale ends in ~0.1 s, so a stall at t=5 s would only hit sold-out answers | AI (M6) | 2026-09-24 |
+| D26 | `/buy` never answers 500: any exception becomes result / `unknown` / `not_attempted` depending on how far the request got; the buyer retries any 5xx | The first kill trial produced 500s from an exception type missing from the error list (asyncpg `InternalClientError` on connection release). The buyer treated 500 as final, leaving 2 orphans. | AI (M7) | 2026-09-24 |
+| D27 | TF2 is proved with a **control run** (`synchronous_commit=off`) that must fail | It lost 6 confirmed sales and resold them. `/status` looked perfect; only the buyer's ledger caught it. Without the control, "0 phantoms" would be unfalsified. | AI (M7) | 2026-09-24 |
 | D10 ✔ | Confirmed by M5 measurement: the host port path adds about 1 ms p50, 1.5–4 ms p99 at 800 req/s | 3 alternating rounds | Measured (M5) | 2026-09-24 |
 
 ## 5. Testing and verification strategy
@@ -342,7 +344,7 @@ Rules:
 - The stall is visible in the open-loop p99 and hidden in the closed-loop one (C4 evidence).
 - Orphaned tickets are counted, and recovered by retrying.
 
-### M7: Kill the datastore mid-sale (TF2, the deep one) · ~1.5 h
+### M7: Kill the datastore mid-sale (TF2, the deep one) · ~1.5 h · ✅ DONE 2026-09-24 (results/M7-killdb.md)
 **Build**
 - A kill/restart script (`docker kill -s KILL postgres`, then `docker start`).
 - The seller's pool recovers.

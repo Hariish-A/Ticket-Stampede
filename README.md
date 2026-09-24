@@ -15,7 +15,7 @@ Design and trade-offs: [DECISIONS.md](DECISIONS.md) (written at M10). The workin
 ```bash
 git clone <this repo> && cd ticket-stampede
 
-./scripts/test.sh      # 36 buyer unit tests + 34 seller integration tests (each race x 3 safe strategies) against real Postgres
+./scripts/test.sh      # 39 buyer unit tests + 34 seller integration tests (each race x 3 safe strategies) against real Postgres
 ./scripts/c1.sh        # the same 51,000-request stampede against the naive seller (FAILs) and the safe one (PASSes)
 ./scripts/naive.sh     # just the naive seller
 ./scripts/calibrate.sh # the client's own ceiling against nginx returning canned responses (no seller in the loop)
@@ -25,6 +25,7 @@ git clone <this repo> && cd ticket-stampede
 ./scripts/hotrow.sh    # is the counter strategy's ceiling the disk flush? (commit flush on vs off)
 ./scripts/d10.sh       # buyer on the compose network vs through the host's published port
 ./scripts/slowdb.sh    # Postgres +3 s per answer for 10 s mid-sale: baseline / seller fail-fast / client retry budget / both / closed-loop (~12 min)
+./scripts/killdb.sh    # SIGKILL Postgres mid-sale and restart it: 3 runs + a synchronous_commit=off control that must FAIL (~12 min)
 ```
 Each run prints a report and saves it to `results/<timestamp>-<scenario>/`:
 - `report.md` and `report.json`, which are committed;
@@ -91,4 +92,5 @@ Clean up with `docker compose down -v`.
 | M4: choosing the allocation strategy from evidence | done |
 | M5: how much load, and where is the bottleneck | done: [results/M5-bottleneck.md](results/M5-bottleneck.md) |
 | M6: the datastore goes slow for 10 s | done: [results/M6-slowdb.md](results/M6-slowdb.md) |
-| M7: kill the datastore mid-sale (TF2) | next |
+| M7: kill the datastore mid-sale (TF2) | done: [results/M7-killdb.md](results/M7-killdb.md) |
+| M8: three instances behind nginx (TF1) | next |
