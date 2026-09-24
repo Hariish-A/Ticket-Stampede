@@ -4,14 +4,15 @@
 > Append new entries at the bottom of the log. Keep "Current state" and "Next up" current.
 
 ## Current state
-- **Phase:** M2 is done (the safe seller passes; **the core brief is complete**). M3 is next, when the user says "start M3".
+- **Phase:** M3 is done (a buyer we can trust at scale). M4 is next, when the user says "start M4".
 - **Runs?**
-  - `./scripts/test.sh`: 22 buyer unit tests + 11 seller integration tests, all passing.
-  - `./scripts/c1.sh`: naive FAILs I1–I4, U1, U2 and U5; skiplocked PASSes all 9 checks on the same 51k-request stampede.
+  - `./scripts/test.sh`: 28 buyer unit tests + 11 seller integration tests, all passing.
+  - `./scripts/c1.sh`: 4 processes plus the live auditor. naive FAILs, including A3 (1,312 live violations); skiplocked PASSes, with A3 at 0 violations in 465 snapshots.
+  - `./scripts/calibrate.sh`: client ceiling 4.8k / 8.2k / 12.7k / 20.7k req/s with 1 / 2 / 4 / 8 processes.
 - **Repo:** https://github.com/Hariish-A/Ticket-Stampede (private), branch `main`.
 
 ## Next up
-1. M3: buyer across multiple processes, live auditor (A3), client-health section, closed-loop mode, nginx `/calibrate`, `scripts/calibrate.sh`.
+1. M4: `counter` and `serializable` allocators, `scripts/c2.sh` comparison, choose the default from the evidence.
 
 ## Known weaknesses / open issues
 _(These feed into the "where it breaks" section of DECISIONS.md.)_
@@ -19,7 +20,10 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - user_id isn't authenticated, so the one-ticket-per-user rule can be bypassed by making up new user_ids. /reset isn't authenticated either.
 - The load client and the seller share one machine's CPU, so throughput numbers depend on the machine.
 - A single Postgres node is a single point of failure; asynchronous replication would make failover lose confirmed sales.
-- (M1) **Single-process buyer lags during the opening burst**: its send lag reaches p99 71–98 ms and max 240–310 ms when 1,000 requests are scheduled at t=0. The client-health metric shows this. M3 (multiprocess plus calibration) needs to fix and quantify it.
+- (M1 → fixed in M3) **The single-process buyer lagged during the opening burst** (send lag p99 71–98 ms, max 240–310 ms). With 4 processes: p99 about 12 ms, max 70–90 ms, workers at 12% CPU.
+- (M3) **Client ceiling depends on the machine, and scaling is sub-linear**: 4.8k / 8.2k / 12.7k / 20.7k req/s at 1 / 2 / 4 / 8 processes, on a 16-CPU Docker Desktop VM shared with nginx and the seller. Every worker was at about 100% CPU and nginx peaked at 155%, so the limit is the client's Python. The stampede runs offer about 1k req/s, far below the ceiling.
+- (M3) **The client reuses keep-alive connections; real buyers wouldn't.** 50k real users means 50k separate TCP connections and TLS handshakes. Our workers reuse pooled connections, which makes the seller's job easier than reality. Deliberate: one connection per request would exhaust the client's ephemeral ports (about 28k) and measure the client's connect cost instead.
+- (M3) **The live auditor adds load**: about 10 `/status` requests/s on the seller during the sale. Small, but non-zero.
 - (M1) **A pool-acquire timeout answers 503 "unknown", but the outcome is actually known**: the request never reached the database, so nothing happened. M6 should separate "not attempted, safe to retry" from "unknown outcome".
 - (M2) **The safe seller also saturates at the opening burst.** In the C1 skiplocked run, 1,479 of 51k requests got 503 (all `TimeoutError`: waiting more than 1 s for one of 20 pool connections). p99 was 1.5 s and max 2.4 s. No invariant was affected, because those requests never reached the database. M5 will find the bottleneck; candidates are single-process Python CPU, pool size, and the sold-out path's 4 queries (lookup, skip claim, blocking claim, re-lookup).
 - (M2) **/reset during live traffic isn't safe for the epoch.** A buy whose statement snapshot predates a concurrent TRUNCATE can see an empty `tickets` table and answer a spurious "sold out" for the new epoch. U4 and U3 would flag it. Resetting mid-sale is outside the brief; not handled.
@@ -145,3 +149,19 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
   4. **A real seller race found by designing U5** ("a ticket holder is never told sold out"). Twins racing for the last ticket: the loser's blocking claim waits on its twin's row and then answers 409. Reproduced first by a test (1/30 twins told "sold out"), then fixed with a re-lookup before 409. The race-sensitive tests passed 5 out of 5 reruns (100 iterations).
 - Mutation check: removing the SKIP LOCKED fallback makes 2 integration tests fail, so they test what they claim.
 - Results: `results/*c1-naive`, `results/*c1-skiplocked`.
+
+### 2026-09-24 — Session 4 (continued): M3, a buyer we can trust at scale
+- Built:
+  - `coordinator.py`: splits the schedule across P spawn-processes with a shared t0 (CLOCK_MONOTONIC is system-wide).
+  - `runner.py`: open-loop with an in-flight cap (D16); closed-loop with an optional deadline; `worker_main` records CPU use per process.
+  - `auditor.py`: live `/status` polling with per-snapshot and between-snapshot checks (A3, counted as core alongside I1–I4).
+  - Client health in every report.
+  - `buyer calibrate`; nginx `lb` service with a canned-response server on :8081; `scripts/calibrate.sh`, which also samples container CPU.
+- **Mistake caught (the AI's own design):** the first calibration offered 60k req/s to one process. The M1 open-loop runner had no in-flight bound, so once behind schedule it stopped sleeping and spawned about 300k tasks and new TCP connections. It ran 7 minutes: 0 responses, send lag p99 424 s. The root cause is in the design, not calibration-specific: an overloaded open-loop client must not grow without bound. Fixed with a per-process semaphore, with `sent` taken after acquiring a slot, so any backlog is reported as send lag (D16). Calibration now measures the ceiling closed-loop (D17).
+- Environment:
+  - Docker Desktop had stopped mid-session, so I restarted it.
+  - postgres had no restart policy and stayed down, so seller1 crash-looped. Added `restart: unless-stopped` to postgres; M7 must check this doesn't auto-restart a killed postgres.
+  - A corrupted build cache after the restart was fixed by rebuilding.
+- The heredoc-based Python edits turned `"
+"` into literal newlines twice. Fixed with the Edit tool; use Edit for such changes.
+- Results: `results/*-calibrate`, `results/*-calibrate-container-cpu.txt`, `results/*c1-{naive,skiplocked}` (M3 runs).

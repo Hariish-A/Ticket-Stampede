@@ -1,13 +1,24 @@
 import argparse
 import asyncio
+import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 import aiohttp
 
-from . import report, runner, schedule, stats, verify
+from . import auditor, coordinator, report, runner, schedule, stats, verify
+
+
+def _common(p: argparse.ArgumentParser, target_default: str) -> None:
+    p.add_argument("--target", default=os.environ.get("BUYER_TARGET", target_default))
+    p.add_argument("--processes", type=int, default=4, help="worker processes firing the stampede")
+    p.add_argument("--max-inflight", type=int, default=2000,
+                   help="open-loop cap on in-flight requests per process; waiting for a slot counts as client send lag")
+    p.add_argument("--timeout", type=float, default=10.0, help="per-request client timeout, seconds")
+    p.add_argument("--out", default="results")
 
 
 def parse_args(argv=None) -> argparse.Namespace:
@@ -15,23 +26,33 @@ def parse_args(argv=None) -> argparse.Namespace:
     sub = p.add_subparsers(dest="command", required=True)
 
     r = sub.add_parser("run", help="reset the sale, fire the load, verify invariants, write a report")
-    r.add_argument("--target", default=os.environ.get("BUYER_TARGET", "http://seller1:8000"))
+    _common(r, "http://seller1:8000")
     r.add_argument("--scenario", default="adhoc", help="name used in the report and results folder")
     r.add_argument("--tickets", type=int, default=100)
     r.add_argument("--requests", type=int, default=50_000, help="distinct buyers, one fresh request each")
     r.add_argument("--burst", type=int, default=1_000, help="fresh requests all scheduled at t=0 (the on-sale moment)")
     r.add_argument("--rate", type=float, default=1_000, help="fresh requests per second after the burst")
+    r.add_argument("--concurrency", type=int, default=None,
+                   help="CLOSED-loop mode with this many in-flight requests (for the C4 comparison); "
+                        "default is open-loop on the schedule")
     r.add_argument("--dup-concurrent", type=int, default=500, help="duplicates fired at the same instant as the original")
     r.add_argument("--dup-sequential", type=int, default=500, help="duplicates fired 50ms-1s after the original")
-    r.add_argument("--replay-after", type=int, default=50, help="replays of early (likely winning) requests after sell-out")
-    r.add_argument("--new-rid", type=int, default=20, help="early users retrying with a new request_id")
-    r.add_argument("--rid-conflict", type=int, default=20, help="early request_ids reused by a different user")
-    r.add_argument("--timeout", type=float, default=10.0, help="per-request client timeout, seconds")
+    r.add_argument("--replay-after", type=int, default=50, help="post-sale replays (~80%% of actual winners)")
+    r.add_argument("--new-rid", type=int, default=20, help="winners retrying with a new request_id")
+    r.add_argument("--rid-conflict", type=int, default=20, help="winners' request_ids reused by a different user")
+    r.add_argument("--audit-interval", type=float, default=0.1, help="seconds between live /status audits; 0 disables")
     r.add_argument("--seed", type=int, default=1)
-    r.add_argument("--out", default="results")
     r.add_argument("--no-reset", action="store_true", help="do not POST /reset before the run")
     r.add_argument("--expect-allocator", help="refuse to run unless the seller reports this allocator "
                                               "(guards against attacking the wrong seller)")
+
+    c = sub.add_parser("calibrate", help="measure the client's own ceiling against a target that answers instantly")
+    _common(c, "http://lb:8081")
+    c.add_argument("--process-counts", default="1,2,4,8", help="comma-separated worker counts to try")
+    c.add_argument("--concurrency-per-process", type=int, default=128,
+                   help="closed-loop requests in flight per process while measuring the ceiling")
+    c.add_argument("--duration", type=float, default=5.0, help="seconds of load per measurement")
+    c.add_argument("--scenario", default="calibrate")
     return p.parse_args(argv)
 
 
@@ -66,24 +87,34 @@ async def run(args: argparse.Namespace) -> int:
         dup_concurrent=args.dup_concurrent, dup_sequential=args.dup_sequential,
         replay_after=args.replay_after, new_rid=args.new_rid, rid_conflict=args.rid_conflict, seed=args.seed,
     )
+    stop_audit = asyncio.Event()
+    audit_task = (asyncio.create_task(auditor.audit(args.target, args.tickets, stop_audit, args.audit_interval))
+                  if args.audit_interval > 0 else None)
+
     plan = schedule.build(spec)
-    print(f"[buyer] phase 1: firing {len(plan)} requests at {args.target} ...", file=sys.stderr)
-    stampede, t0 = await runner.run_open_loop(args.target, plan, timeout=args.timeout)
+    mode = f"closed-loop x{args.concurrency}" if args.concurrency else "open-loop"
+    print(f"[buyer] phase 1: {len(plan)} requests, {mode}, {args.processes} processes -> {args.target}", file=sys.stderr)
+    stampede, workers, t0 = await coordinator.run_phase(args.target, plan, args.processes, args.timeout,
+                                                        args.concurrency, args.max_inflight)
 
     probes_plan = schedule.build_probes(spec, stampede)
-    print(f"[buyer] phase 2: {len(probes_plan)} probes aimed at actual winners/losers ...", file=sys.stderr)
-    probes, _ = await runner.run_open_loop(args.target, probes_plan, timeout=args.timeout)
+    print(f"[buyer] phase 2: {len(probes_plan)} probes aimed at actual winners/losers", file=sys.stderr)
+    probes = await runner.run_open_loop(args.target, probes_plan, time.perf_counter() + 0.1, args.timeout)
     attempts = stampede + probes
 
+    stop_audit.set()
+    audit = await audit_task if audit_task else None
     status = await _get_status(args.target)
-    checks = verify.verify(status, attempts, total=args.tickets)
-    summary = stats.summarize(stampede, t0)  # load numbers: the stampede only
+    checks = verify.verify(status, attempts, total=args.tickets, audit=audit)
+    summary = stats.summarize(stampede, t0, workers)  # load numbers: the stampede only
     summary["probes"] = len(probes)
 
     meta = {
         "scenario": args.scenario,
         "target": args.target,
         "allocator": status.get("allocator") or (reset or {}).get("allocator"),
+        "mode": mode,
+        "processes": args.processes,
         "tickets": args.tickets,
         "requests": args.requests,
         "burst": args.burst,
@@ -99,8 +130,53 @@ async def run(args: argparse.Namespace) -> int:
     return 0 if verify.all_core_pass(checks) else 1
 
 
+async def calibrate(args: argparse.Namespace) -> int:
+    """Same client code, against a target that does no work (nginx returning a canned
+    response). Step 1, per process count: closed-loop for `duration` seconds; the rate
+    it reaches is the client's ceiling (the target never stalls, so closed-loop hides
+    nothing here). Step 2: open-loop at half the best ceiling, to show that at that
+    rate the client keeps its schedule (send lag stays near zero)."""
+    started = datetime.now(timezone.utc)
+    counts = [int(x) for x in args.process_counts.split(",")]
+    enough = int(100_000 * args.duration)  # more requests than any process count can send in `duration`
+    backlog = schedule.build(schedule.ScheduleSpec(requests=enough, rate=1, burst=enough, tickets=0))
+    rows = []
+    for procs in counts:
+        conc = args.concurrency_per_process * procs
+        print(f"[calibrate] ceiling: {procs} processes, closed-loop x{conc}, {args.duration}s ...", file=sys.stderr)
+        attempts, workers, t0 = await coordinator.run_phase(args.target, backlog, procs, args.timeout,
+                                                            concurrency=conc, duration=args.duration)
+        s = stats.summarize(attempts, t0, workers)
+        rows.append({"mode": f"closed-loop x{conc}", "processes": procs, **s})
+        print(f"[calibrate]   -> {s['throughput_rps']} req/s, worker CPU max {s['client']['cpu_util_max']:.0%}",
+              file=sys.stderr)
+
+    best = max(rows, key=lambda r: r["throughput_rps"])
+    rate = round(best["throughput_rps"] / 2, -2)
+    procs = best["processes"]
+    print(f"[calibrate] validation: open-loop at {rate:.0f} req/s with {procs} processes ...", file=sys.stderr)
+    plan = schedule.build(schedule.ScheduleSpec(requests=int(rate * args.duration), rate=rate, burst=0, tickets=0))
+    attempts, workers, t0 = await coordinator.run_phase(args.target, plan, procs, args.timeout,
+                                                        max_inflight=args.max_inflight)
+    s = stats.summarize(attempts, t0, workers)
+    rows.append({"mode": f"open-loop @ {rate:.0f}/s", "processes": procs, **s})
+
+    out_dir = Path(args.out) / f"{started:%Y%m%dT%H%M%SZ}-{args.scenario}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    meta = {"scenario": args.scenario, "target": args.target, "started_utc": started.isoformat(timespec="seconds"),
+            "duration_s": args.duration, "concurrency_per_process": args.concurrency_per_process}
+    (out_dir / "report.json").write_text(json.dumps({"meta": meta, "rows": rows}, indent=2))
+    md = report.render_calibration(meta, rows)
+    (out_dir / "report.md").write_text(md)
+    print(md)
+    print(f"[calibrate] report written to {out_dir}", file=sys.stderr)
+    return 0
+
+
 def main(argv=None) -> int:
     args = parse_args(argv)
     if args.command == "run":
         return asyncio.run(run(args))
+    if args.command == "calibrate":
+        return asyncio.run(calibrate(args))
     return 2

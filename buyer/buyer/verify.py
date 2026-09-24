@@ -33,7 +33,7 @@ class Check:
         return "INFO" if self.passed is None else ("PASS" if self.passed else "FAIL")
 
 
-def verify(status: dict, attempts: Iterable[Attempt], total: int) -> list[Check]:
+def verify(status: dict, attempts: Iterable[Attempt], total: int, audit=None) -> list[Check]:
     attempts = list(attempts)
     holders = status.get("holders", [])
     sold = status.get("sold")
@@ -143,6 +143,16 @@ def verify(status: dict, attempts: Iterable[Attempt], total: int) -> list[Check]
                              f"from holders, none told 'sold out'",
                         [{"user_id": a.user_id, "request_id": a.request_id, "kind": a.kind} for a in denied[:EXAMPLES]]))
 
+    if audit is not None:
+        # I4 says "always": the live auditor checked every snapshot during the sale.
+        found = dict(audit.violations)
+        checks.append(Check("A3", "Live audit: invariants held in every /status snapshot during the sale",
+                            not found if audit.snapshots else None,
+                            f"{sum(found.values())} violations in {audit.snapshots} snapshots: {found}" if found
+                            else f"{audit.snapshots} snapshots over {audit.duration_s:.1f}s, 0 violations"
+                                 + (f" ({audit.failed_polls} polls got no answer)" if audit.failed_polls else ""),
+                            audit.examples))
+
     orphans = sorted(status_pairs - pairs)
     checks.append(Check("A2", "Orphaned tickets (sold, but the buyer was never told)", None,
                         f"{len(orphans)} tickets in /status were never confirmed to their buyer",
@@ -150,8 +160,8 @@ def verify(status: dict, attempts: Iterable[Attempt], total: int) -> list[Check]
     return checks
 
 
-CORE = ("I1", "I2", "I3", "I4")
+CORE = ("I1", "I2", "I3", "I4", "A3")  # A3 is I4's "always", checked live
 
 
 def all_core_pass(checks: list[Check]) -> bool:
-    return all(c.passed for c in checks if c.id in CORE)
+    return all(c.passed is not False for c in checks if c.id in CORE)

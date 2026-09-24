@@ -15,9 +15,10 @@ Design and trade-offs: [DECISIONS.md](DECISIONS.md) (written at M10). The workin
 ```bash
 git clone <this repo> && cd ticket-stampede
 
-./scripts/test.sh      # 22 buyer unit tests + 11 seller integration tests against real Postgres
+./scripts/test.sh      # 28 buyer unit tests + 11 seller integration tests against real Postgres
 ./scripts/c1.sh        # the same 51,000-request stampede against the naive seller (FAILs) and the safe one (PASSes)
 ./scripts/naive.sh     # just the naive seller
+./scripts/calibrate.sh # the client's own ceiling against nginx returning canned responses (no seller in the loop)
 ```
 Each run prints a report and saves it to `results/<timestamp>-<scenario>/`:
 - `report.md` and `report.json`, which are committed;
@@ -32,12 +33,18 @@ Buyer options (`docker compose run --rm buyer run --help`):
 | `--burst` | 1000 | requests all scheduled at t=0 (the on-sale moment) |
 | `--rate` | 1000 | requests/s after the burst (open-loop: sent on schedule, regardless of responses) |
 | `--dup-concurrent` / `--dup-sequential` | 500 / 500 | same request_id sent again at the same instant, or 50 ms–1 s later |
-| `--replay-after` | 50 | early (likely winning) requests replayed after the sale is over |
+| `--replay-after` | 50 | replays after the sale is over (about 80% aimed at actual winners, the rest at losers) |
 | `--new-rid` / `--rid-conflict` | 20 / 20 | a winner retrying with a new request_id; a winner's request_id sent by a different user |
 | `--expect-allocator` | – | refuse to run unless the seller reports this allocator |
+| `--seed` | 1 | makes the schedule reproducible |
+| `--processes` | 4 | worker processes sharing the stampede (one start time; each owns every P-th request) |
+| `--max-inflight` | 2000 | cap on in-flight requests per process; waiting for a free slot is counted as client send lag, not hidden |
+| `--concurrency` | – | switch to **closed-loop** with this many in-flight requests (only for the C4 comparison) |
+| `--audit-interval` | 0.1 | seconds between live `/status` audits during the sale; 0 disables |
 
 The run has two phases. First the **stampede**, which is timed: it's sent on a fixed schedule and never waits for responses. Then the **probes**: replays, new request_ids and conflicts, aimed at the buyers who *actually* won or lost in phase 1. The probes are verified but not timed.
-| `--seed` | 1 | makes the schedule reproducible |
+
+Every report ends with **client health**: each worker's CPU use and the client's send lag. If a worker is near 100% of a core, or the send lag grows, the client (not the seller) was the limit, and that run's numbers are suspect.
 
 Manual poking: the seller is on `http://localhost:8001` (if that port is busy, set `SELLER1_PORT`, e.g. `SELLER1_PORT=18001 docker compose up -d`).
 ```bash
@@ -63,6 +70,7 @@ Clean up with `docker compose down -v`.
 | I3 | A repeated request_id never yields a second ticket |
 | I4 | `/status` `sold` equals its holder list, and every ticket confirmed to a buyer appears in it (no lost sales) |
 | U1–U5 | One ticket per user; a winner's request_id reused by someone else is rejected; no false "sold out"; no responses from a different sale; **a ticket holder is never told "sold out"** |
+| A3 | **Live audit**: `/status` is polled during the sale, and every snapshot must be consistent (count = list, no duplicates, no oversell). Within one sale, no ticket may disappear and the count may never go down. |
 | A2 | Orphaned tickets: sold, but the buyer was never told (reported as a count, not pass/fail) |
 
 ## Status
@@ -70,4 +78,5 @@ Clean up with `docker compose down -v`.
 |---|---|
 | M1: the naive seller gets caught | done |
 | M2: the safe seller passes | done |
-| M3: a buyer we can trust at scale | next |
+| M3: a buyer we can trust at scale | done |
+| M4: choosing the allocation strategy from evidence | next |

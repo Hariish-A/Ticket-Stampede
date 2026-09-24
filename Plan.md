@@ -215,6 +215,9 @@ naive_sales(ticket_no int, user_id text, request_id text)       -- NO constraint
 | D13 | The safe `/buy` uses **no explicit transaction**: a lookup, then a claim that is one atomic `UPDATE`, then (on a UniqueViolation) the lookup again | The constraints stop double sales, not a lock held across statements. Dropping BEGIN/COMMIT saves 2 round trips, and row locks are held for exactly one statement. | AI (M2) | 2026-09-24 |
 | D14 | SKIP LOCKED claim → blocking claim → **look up again** before answering 409 | Without the fallback, a buyer is told "sold out" while the last ticket is mid-claim and about to roll back. Without the re-lookup, a twin that loses the last ticket to its own duplicate is told "sold out". Both were reproduced by tests. The cost is extra queries on the sold-out path (to be measured in M4/M5). | AI (M2) | 2026-09-24 |
 | D15 | Buyer probes (post-sale replays, new request_ids, conflicts) are a **second phase built from the ledger** of phase 1 | The first version guessed that the earliest requests would win. With a burst at t=0 that's false, so the probes silently tested losers only. | AI (M2) | 2026-09-24 |
+| D16 | The open-loop client caps in-flight requests per process (`--max-inflight`, default 2000). The send timestamp is taken **after** a slot is acquired. | Without a cap, an overloaded client floods itself: in the first calibration, one process offered 60k/s spent 7 min and got 0 responses. With the cap, any backlog shows up as client send lag instead of disappearing. | AI (M3) | 2026-09-24 |
+| D17 | The client ceiling is measured **closed-loop** against a zero-work nginx target, then checked open-loop at half the ceiling | The target never stalls, so closed-loop hides nothing, and it measures the maximum directly. The open-loop check shows the client keeps its schedule at real test rates. | AI (M3) | 2026-09-24 |
+| D18 | The live auditor runs inside the coordinator process while the workers fire, polling `/status` every 100 ms | The coordinator is otherwise idle, so no extra process is needed. The observer effect (about 10 extra /status requests/s on the seller) is small and stated. | AI (M3) | 2026-09-24 |
 
 ## 5. Testing and verification strategy
 | Layer | What | What it proves |
@@ -269,7 +272,7 @@ Rules:
 - Integration tests are green.
 - **This is the minimum complete submission.**
 
-### M3: A buyer we can trust at scale (A3, A4, TF4) · ~2.0 h
+### M3: A buyer we can trust at scale (A3, A4, TF4) · ~2.0 h · ✅ DONE 2026-09-24
 **Build**
 - The multiprocess coordinator and workers.
 - The live auditor (A3).
@@ -401,5 +404,6 @@ The plan runs about 1 hour over the 15-hour budget. If we need to cut, M9 goes f
 
 
 ## 7. Decision changes (history)
+- 2026-09-24 (M3): the open-loop client's "no connection limit" (M1) was replaced by a per-process in-flight cap that counts waiting as send lag (D16). The unlimited version collapsed under overload during calibration.
 - 2026-09-24 (M2): the post-sale probes were changed from "pre-scheduled against the earliest requests" to "built from actual phase-1 outcomes" (D15). A C1 run showed that 0 of 20 probes had hit a winner.
 - 2026-09-24: the milestones were changed from a list of technical tasks to vertical slices, each ending in something that runs (D9, at the user's request).
