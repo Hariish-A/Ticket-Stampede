@@ -4,17 +4,12 @@
 > Append new entries at the bottom of the log. Keep "Current state" and "Next up" current.
 
 ## Current state
-- **Phase:** M8 is done (TF1: 3 instances behind nginx: `results/M8-tf1.md`). M9 is conditional (sold-out cache); M10 (DECISIONS.md, README, clean-machine test) is next, when the user says so.
-- **Runs?**
-  - `./scripts/test.sh`: 39 buyer unit + 34 seller integration tests, all passing.
-  - `TOPOLOGY=tf1` works for c1, sweep, killdb and slowdb; `./scripts/tf1.sh` runs them all.
-- **Headline:** with no app-level lock, all invariants hold across 3 instances (C1, kill + control, slowdown). Throughput scales about 1.3× on this laptop; imbalance and connection churn were ruled out, shared-host contention was measured (+25% seller CPU per request when the client uses more cores).
+- **Phase:** ALL MILESTONES DONE. M1–M8 and M10 are complete; M9 was skipped (D29). The submission is ready: DECISIONS.md, README (5-minute path verified on a clean checkout), results/, logs/.
+- **Runs?** `./scripts/test.sh` (39 buyer unit + 34 seller integration) and `./scripts/c1.sh`; every experiment is listed in the README.
 - **Repo:** https://github.com/Hariish-A/Ticket-Stampede (private), branch `main`.
 
 ## Next up
-1. Decide M9: the M5 evidence says the sold-out path is **not** database-bound after D20 (allocator 0.4 ms of ~2.4 ms p50; the bottleneck is per-process web-stack CPU), so by the plan's own condition M9 is **skipped**. The user confirms.
-2. M10: DECISIONS.md (≤ 2 pages), README (5-minute clean run), clean-checkout test, final logs.
-3. D24 (fail-fast default) is still open.
+1. Nothing is required. Optional: share the private repo with the evaluators; export any non-Claude-Code AI sessions into `logs/`.
 
 ## Known weaknesses / open issues
 _(These feed into the "where it breaks" section of DECISIONS.md.)_
@@ -47,6 +42,7 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
 - (M1, original note) There were 6–8k 503s per run, and p90 latency was about 1 s, which matches the 1 s acquire timeout. Hypothesis: every buy does `UPDATE sale` on the single row, and each of those commits waits for a WAL fsync while holding the row lock. So buys queue behind fsync latency (the "hot row" problem). The C2 `counter` strategy would have the same problem. Unverified until measured.
 
 ## Open questions for the user
+- None. (D24 was decided on measurement: ON at 64, results/D24-failfast.md.)
 - D24: enable seller fail-fast admission by default? The measured trade-off: stall resilience (orphans 1,693 → 29, recovery right after the stall) vs shedding part of the brief's 1,000-request opening burst at a limit of 64. Options: keep off; on with a higher limit (e.g. 256, not measured); or shed at nginx instead (M8).
 
 ---
@@ -251,3 +247,13 @@ _(These feed into the "where it breaks" section of DECISIONS.md.)_
   - Ruled out imbalance (per-instance CPU equal) and connection churn (~86 ESTABLISHED, 2 TIME_WAIT to the sellers).
   - Measured host contention: at 1,500 req/s, 2 vs 8 client processes changes seller CPU per request from 0.95 to 1.19 ms. The host is a Ryzen 7 7435HS, 8 cores / 16 threads.
 - Predicted, but not reproduced: nginx's stale upstream IP after a seller is recreated (Docker reused the IP). The compose comment was corrected to state what was observed; the restart stays as insurance.
+
+### 2026-09-27 — Session 4 (continued): M9 skipped, D24 decided, M10
+- User: skip M9; resolve D24; finish M10.
+- D24: measured `MAX_INFLIGHT` 0 / 64 / 256 on the C1 burst and the M6 stall. 64 is ON by default (256 was dominated). Evidence in `results/D24-failfast.md`.
+- Environment:
+  - After a machine restart, Docker Desktop was down, and the `python:3.12-slim` base image had disappeared from the cache.
+  - PyPI responded in about 20 s, beyond pip's 15 s default timeout, so builds failed.
+  - Fixed durably: pip `--timeout 60 --retries 10`, and the seller Dockerfile installs dependencies before copying code (D30).
+- Found while preparing DECISIONS.md: the 2026-09-24 C1 run cited there was performance-contaminated (2,347 no-responses, from a host suspend mid-run). Moved to `discarded/`; fresh C1 runs are cited instead.
+- Wrote DECISIONS.md (~1,250 words), restructured the README (5-minute path, experiment index), and did the clean-checkout test (see README).

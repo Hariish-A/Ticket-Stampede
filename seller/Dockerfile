@@ -1,26 +1,27 @@
-FROM python:3.12-slim AS base
-
+# Dependencies are installed before any code is copied, in every stage, so a code
+# change never re-downloads packages (a slow network made that painful in M10).
+FROM python:3.12-slim AS deps
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /srv
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir --timeout 60 --retries 10 -r requirements.txt
 
-COPY schema.sql .
-COPY app ./app
-
 # Integration tests: `docker compose run --rm seller-tests` (built only on demand).
-FROM base AS test
+FROM deps AS test
 COPY requirements-dev.txt pytest.ini ./
 RUN pip install --no-cache-dir --timeout 60 --retries 10 -r requirements-dev.txt
+COPY schema.sql .
+COPY app ./app
 COPY tests ./tests
 CMD ["python", "-m", "pytest", "-q"]
 
-FROM base AS runtime
+FROM deps AS runtime
 # py-spy: sampling profiler for the bottleneck analysis (M5, scripts/profile.sh).
 # It attaches to the running server from outside, so it costs nothing until used.
 COPY requirements-profile.txt .
 RUN pip install --no-cache-dir --timeout 60 --retries 10 -r requirements-profile.txt
+COPY schema.sql .
+COPY app ./app
 EXPOSE 8000
 HEALTHCHECK --interval=2s --timeout=2s --retries=30 \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=1).status == 200 else 1)"

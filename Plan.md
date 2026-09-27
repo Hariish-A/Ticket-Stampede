@@ -224,11 +224,13 @@ naive_sales(ticket_no int, user_id text, request_id text)       -- NO constraint
 | D21 | Performance experiments discard a warm-up step and alternate the order of compared variants | A cold seller (pool growing 5 → 20, cold caches) has p99 of about 180–290 ms for its first seconds. It contaminated one sweep and one D10 comparison before this rule. | AI (M5) | 2026-09-24 |
 | D22 | Two kinds of 503: `not_attempted` (no connection obtained, nothing sent: known not bought) vs `unknown` (a statement was sent, no answer: maybe bought) | A buyer (and the verifier) can tell "definitely not" from "maybe". This was the M1 known weakness. | AI (M6) | 2026-09-24 |
 | D23 | The buyer retries unclear answers with the same request_id (`--retry-unknown`, exponential backoff + jitter), optionally under a **retry budget** (`--retry-rate`, token bucket; over-budget retries wait, never dropped). The in-flight slot covers the first attempt only. | Measured: without a budget, a 10 s stall became a metastable ~40 s+ outage (1,693 orphans, 6,856 buyers never answered). With a 200/s budget: 0 orphans, 0 unanswered, sold out 27.9 s vs 51.8 s. | AI (M6), measured | 2026-09-24 |
-| D24 | Seller fail-fast admission (`MAX_INFLIGHT`, a pure ASGI middleware that sheds /buy with an immediate 503) — **implemented, default OFF, pending the user's decision** | Measured: keeps the seller responsive through a retry storm (p99 back to ~300 ms after the stall; orphans 1,693 → 29). But at 64 it would also shed part of the brief's 1,000-request opening burst. | Pending (user) | 2026-09-24 |
+| D24 | Seller fail-fast admission: **ON by default, `MAX_INFLIGHT=64` per instance** | Measured (results/D24-failfast.md). Burst: sheds ~2% with a definite 'not bought', p99 1,846 → 675 ms. 10 s stall: orphans 1,693 → 29. 256 was dominated (similar shedding at the burst, 192 orphans, sale unfinished). | User delegated ("finish them all"); AI decided on measurement | 2026-09-27 |
 | D25 | "Mid-sale" slowdown uses a 15,000-ticket sale | With 100 tickets the sale ends in ~0.1 s, so a stall at t=5 s would only hit sold-out answers | AI (M6) | 2026-09-24 |
 | D26 | `/buy` never answers 500: any exception becomes result / `unknown` / `not_attempted` depending on how far the request got; the buyer retries any 5xx | The first kill trial produced 500s from an exception type missing from the error list (asyncpg `InternalClientError` on connection release). The buyer treated 500 as final, leaving 2 orphans. | AI (M7) | 2026-09-24 |
 | D27 | TF2 is proved with a **control run** (`synchronous_commit=off`) that must fail | It lost 6 confirmed sales and resold them. `/status` looked perfect; only the buyer's ledger caught it. Without the control, "0 phantoms" would be unfalsified. | AI (M7) | 2026-09-24 |
 | D28 | TF1: seller1–3 behind nginx `least_conn` + keep-alive; no POST resend (`proxy_next_upstream error timeout`); scripts parametrised by `TOPOLOGY=single\|tf1` (`scripts/lib.sh`) | Stateless sellers; the invariants live in Postgres. Every experiment reruns unchanged against 3 instances. | AI (M8) | 2026-09-24 |
+| D29 | M9 (in-memory sold-out cache) skipped | By the plan's own condition: after D20 the sold-out path is not DB-bound (allocator 0.4 ms of ~2.4 ms p50; the bottleneck is per-process web-stack CPU) | User | 2026-09-27 |
+| D30 | Dockerfiles install all dependencies before copying code, and pip tolerates slow networks | A code change had forced pip reinstalls, which failed on a slow network during M10 | AI (M10) | 2026-09-27 |
 | D10 ✔ | Confirmed by M5 measurement: the host port path adds about 1 ms p50, 1.5–4 ms p99 at 800 req/s | 3 alternating rounds | Measured (M5) | 2026-09-24 |
 
 ## 5. Testing and verification strategy
@@ -372,7 +374,7 @@ Rules:
 - All invariants PASS with no lock in the app.
 - Requests/sec compared between 1 and 3 instances. If throughput doesn't scale, we explain why, using the M5 bottleneck evidence.
 
-### M9 (conditional): The sold-out cache · ~1.0 h
+### M9 (conditional): The sold-out cache · ~1.0 h · ⏭ SKIPPED (D29)
 **Only if** M5 shows the sold-out path is limited by the database.
 
 **Build**
@@ -387,7 +389,7 @@ Rules:
 - A measured gain.
 - No stale sold-out answers after a reset sent to another instance.
 
-### M10: Submission · ~1.5 h
+### M10: Submission · ~1.5 h · ✅ DONE 2026-09-27
 **Deliverable**
 - DECISIONS.md (≤2 pages, quoting the saved results).
 - A README that works on a clean machine in under 5 minutes.
@@ -416,6 +418,7 @@ The plan runs about 1 hour over the 15-hour budget. If we need to cut, M9 goes f
 
 
 ## 7. Decision changes (history)
+- 2026-09-27 (M10): D24 changed from "implemented, default OFF, pending" to "ON at 64", after measuring 0 / 64 / 256 on both the burst and the stall.
 - 2026-09-24 (M6): the buyer's in-flight slot was held through a retry chain, then changed to cover the first attempt only (D23). Holding it let sleeping retries throttle new sends.
 - 2026-09-24 (M5): the sold-out answer moved from 4 queries (lookup, SKIP LOCKED claim, blocking claim, re-lookup) to 1 query (D20), after profiling. The full path remains for buyers who might still get a ticket.
 - 2026-09-24 (M3): the open-loop client's "no connection limit" (M1) was replaced by a per-process in-flight cap that counts waiting as send lag (D16). The unlimited version collapsed under overload during calibration.
