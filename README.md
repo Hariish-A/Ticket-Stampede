@@ -2,67 +2,44 @@
 
 A ticket seller that must sell exactly N tickets to a stampede of buyers without ever overselling, plus the load client that attacks it and checks the result.
 
-- **Seller** (`seller/`): FastAPI + asyncpg on Postgres 16. Endpoints: `POST /reset`, `POST /buy`, `GET /status`. The allocator is chosen with `ALLOCATOR=skiplocked|counter|serializable|naive`, and the default is `skiplocked` (chosen by the C2 measurement). `GET /metrics` exposes the allocator's counters (retries, fallbacks). Every `/buy` response carries a `Server-Timing` header (pool wait, allocator queries, handler total). The invariants are enforced by Postgres constraints ([schema.sql](seller/schema.sql)); the claim is a single `UPDATE … FOR UPDATE SKIP LOCKED` ([skiplocked.py](seller/app/allocators/skiplocked.py)).
-- **Buyer** (`buyer/`): an open-loop load client. It fires a scheduled stampede with duplicate and replayed request ids, then verifies the four invariants against `/status` **and** against its own record of what each buyer was told.
+- **Seller** (`seller/`): FastAPI + asyncpg on Postgres 16, with `POST /reset`, `POST /buy` and `GET /status`.
+  - The invariants are enforced by Postgres constraints ([schema.sql](seller/schema.sql)). A purchase is one `UPDATE … FOR UPDATE SKIP LOCKED` ([skiplocked.py](seller/app/allocators/skiplocked.py)).
+  - One instance, or three behind nginx (TF1).
+- **Buyer** (`buyer/`): an open-loop load client. It fires a scheduled stampede, including duplicate, replayed and conflicting request ids. It then verifies the invariants against `/status` **and** against its own ledger of what every buyer was told.
 
-Design and trade-offs: [DECISIONS.md](DECISIONS.md) (written at M10). The working plan is in [Plan.md](Plan.md), and progress in [Progress.md](Progress.md).
+**Read [DECISIONS.md](DECISIONS.md) first** (two pages: why it is built this way, how it was tested, where it breaks). Also:
+- the milestone write-ups in `results/M*.md`;
+- the plan and every decision in [Plan.md](Plan.md);
+- the work log in [Progress.md](Progress.md);
+- the AI session transcripts in [logs/](logs/).
 
 ## Requirements
-- Docker with Compose v2 (Docker Desktop on Windows or macOS). Nothing else; Python runs inside the containers.
-- A bash shell for `scripts/` (Git Bash on Windows works).
+- **Docker with Compose v2** (Docker Desktop on Windows or macOS, or Docker Engine on Linux). Python runs only inside containers.
+- **A bash shell** for `scripts/`. On Windows, use Git Bash; line endings are pinned to LF by `.gitattributes`.
+- **Free host ports 8001 and 8080.** If they're taken, set `SELLER1_PORT` or `LB_PORT`. Only used for manual `curl`.
+- **Network access on the first run**, to pull images and install Python packages. pip is configured to tolerate slow networks.
 
-## Run it (about 2 minutes)
+## Run it in under 5 minutes
 ```bash
-git clone <this repo> && cd ticket-stampede
-
-./scripts/test.sh      # 39 buyer unit tests + 34 seller integration tests (each race x 3 safe strategies) against real Postgres
-./scripts/c1.sh        # the same 51,000-request stampede against the naive seller (FAILs) and the safe one (PASSes)
-./scripts/naive.sh     # just the naive seller
-./scripts/calibrate.sh # the client's own ceiling against nginx returning canned responses (no seller in the loop)
-./scripts/c2.sh        # serializable vs counter vs skiplocked on the brief's sale and on a 5,000-ticket sale (~7 min)
-./scripts/sweep.sh     # rate sweep 250..4000 req/s with CPU + Postgres wait sampling -> where is the knee, and why (~5 min)
-./scripts/profile.sh   # py-spy on the seller under load + pg_test_fsync
-./scripts/hotrow.sh    # is the counter strategy's ceiling the disk flush? (commit flush on vs off)
-./scripts/d10.sh       # buyer on the compose network vs through the host's published port
-./scripts/slowdb.sh    # Postgres +3 s per answer for 10 s mid-sale: baseline / seller fail-fast / client retry budget / both / closed-loop (~12 min)
-./scripts/killdb.sh    # SIGKILL Postgres mid-sale and restart it: 3 runs + a synchronous_commit=off control that must FAIL (~12 min)
-./scripts/tf1.sh       # TF1: all of the above against 3 sellers behind nginx (~25 min); or TOPOLOGY=tf1 ./scripts/<any>.sh
+git clone https://github.com/Hariish-A/Ticket-Stampede.git && cd Ticket-Stampede
+./scripts/test.sh   # builds the images, then 39 buyer unit tests + 34 seller integration tests against real Postgres
+./scripts/c1.sh     # the same 51,000-request stampede against the naive seller (FAILs) and the safe one (PASSes)
 ```
-Each run prints a report and saves it to `results/<timestamp>-<scenario>/`:
-- `report.md` and `report.json`, which are committed;
-- `ledger.jsonl`, with every request, which isn't committed.
+Measured on a clean checkout: _see §Clean-checkout check below_.
 
-Buyer options (`docker compose run --rm buyer run --help`):
+Each run prints its report and saves it to `results/<timestamp>-<scenario>/`: `report.md` and `report.json`, plus `ledger.jsonl` with every request (not committed). Clean up with `docker compose down -v`.
 
-| flag | default | meaning |
+## Every experiment
+| script | what it shows | time |
 |---|---|---|
-| `--tickets` | 100 | tickets in the sale |
-| `--requests` | 50000 | distinct buyers, one request each |
-| `--burst` | 1000 | requests all scheduled at t=0 (the on-sale moment) |
-| `--rate` | 1000 | requests/s after the burst (open-loop: sent on schedule, regardless of responses) |
-| `--dup-concurrent` / `--dup-sequential` | 500 / 500 | same request_id sent again at the same instant, or 50 ms–1 s later |
-| `--replay-after` | 50 | replays after the sale is over (about 80% aimed at actual winners, the rest at losers) |
-| `--new-rid` / `--rid-conflict` | 20 / 20 | a winner retrying with a new request_id; a winner's request_id sent by a different user |
-| `--expect-allocator` | – | refuse to run unless the seller reports this allocator |
-| `--seed` | 1 | makes the schedule reproducible |
-| `--processes` | 4 | worker processes sharing the stampede (one start time; each owns every P-th request) |
-| `--max-inflight` | 2000 | cap on in-flight requests per process; waiting for a free slot is counted as client send lag, not hidden |
-| `--concurrency` | – | switch to **closed-loop** with this many in-flight requests (only for the C4 comparison) |
-| `--audit-interval` | 0.1 | seconds between live `/status` audits during the sale; 0 disables |
-| `--retry-unknown` / `--retry-rate` | 0 / 0 | retry 503s and timeouts up to N times with the same request_id; cap retries at R/s across the client (over-budget retries wait) |
-| `--stall-at` / `--stall-for` / `--stall-latency-ms` | – / 10 / 3000 | make Postgres slow via toxiproxy at t=X s for Y s (needs the seller started with `DB_HOST=toxiproxy DB_PORT=5433`) |
-
-The run has two phases. First the **stampede**, which is timed: it's sent on a fixed schedule and never waits for responses. Then the **probes**: replays, new request_ids and conflicts, aimed at the buyers who *actually* won or lost in phase 1. The probes are verified but not timed.
-
-Every report ends with **client health**: each worker's CPU use and the client's send lag. If a worker is near 100% of a core, or the send lag grows, the client (not the seller) was the limit, and that run's numbers are suspect.
-
-Manual poking: seller1 is on `http://localhost:8001` and the load balancer over seller1–3 on `http://localhost:8080` (if that port is busy, set `SELLER1_PORT`, e.g. `SELLER1_PORT=18001 docker compose up -d`).
-```bash
-curl -X POST localhost:8001/reset -H 'content-type: application/json' -d '{"count":100}'
-curl -X POST localhost:8001/buy   -H 'content-type: application/json' -d '{"user_id":"alice","request_id":"r1"}'
-curl localhost:8001/status
-```
-Clean up with `docker compose down -v`.
+| `c1.sh` | naive vs safe seller under the same attack (the brief's failing run and passing run) | ~2.5 min |
+| `calibrate.sh` | the client's own ceiling against nginx returning canned responses (TF4) | ~1 min |
+| `c2.sh` | serializable vs counter vs skiplocked, at 100 and 5,000 tickets | ~7 min |
+| `sweep.sh` | rate sweep with CPU + Postgres wait sampling: where the knee is, and why | ~5 min |
+| `profile.sh`, `hotrow.sh`, `d10.sh` | py-spy + fsync rate; the hot-row ceiling (flush on/off); the client network path | ~2 min each |
+| `slowdb.sh` | Postgres +3 s per answer for 10 s mid-sale: baseline, seller fail-fast, client retry budget, both, closed-loop | ~12 min |
+| `killdb.sh` | SIGKILL Postgres mid-sale and restart it: 3 runs + a `synchronous_commit=off` control that must FAIL (TF2) | ~12 min |
+| `tf1.sh` | the key scenarios against 3 sellers behind nginx (TF1); or `TOPOLOGY=tf1 ./scripts/<any>.sh` | ~25 min |
 
 ## Responses
 | HTTP | body | meaning |
@@ -71,28 +48,35 @@ Clean up with `docker compose down -v`.
 | 409 | `{"status":"sold_out","epoch":3}` | Definitively sold out. |
 | 422 | `{"status":"request_id_conflict"}` | This request_id belongs to a different user. |
 | 503 | `{"status":"unknown","retry_with_same_request_id":true}` | A statement was sent and no answer came back: **maybe** bought. Retrying with the same request_id is safe, and finds the ticket if it committed. |
-| 503 | `{"status":"not_attempted","retry":true}` | Nothing was sent to the database (no connection, or shed by `MAX_INFLIGHT`): **definitely not** bought. Retry later. |
+| 503 | `{"status":"not_attempted","retry":true}` | Nothing reached the database (no connection, or shed by `MAX_INFLIGHT`): **definitely not** bought. |
+
+`/buy` never answers 500. `GET /metrics` exposes the allocator's counters; every `/buy` carries `Server-Timing` (pool wait, queries, handler).
+
+Manual poking:
+```bash
+curl -X POST localhost:8001/reset -H 'content-type: application/json' -d '{"count":100}'
+curl -X POST localhost:8001/buy   -H 'content-type: application/json' -d '{"user_id":"alice","request_id":"r1"}'
+curl localhost:8001/status        # or localhost:8080 for the load balancer over seller1-3
+```
 
 ## What the buyer checks
 | id | check |
 |---|---|
-| I1 | Never sell more tickets than exist: from `/status` **and** from the tickets actually confirmed to buyers |
+| I1 | Never sell more tickets than exist: in `/status` **and** in the tickets actually confirmed to buyers |
 | I2 | No ticket number issued twice, in `/status` or across confirmations |
 | I3 | A repeated request_id never yields a second ticket |
-| I4 | `/status` `sold` equals its holder list, and every ticket confirmed to a buyer appears in it (no lost sales) |
-| U1–U5 | One ticket per user; a winner's request_id reused by someone else is rejected; no false "sold out"; no responses from a different sale; **a ticket holder is never told "sold out"** |
-| A3 | **Live audit**: `/status` is polled during the sale, and every snapshot must be consistent (count = list, no duplicates, no oversell). Within one sale, no ticket may disappear and the count may never go down. |
-| A2 | Orphaned tickets: sold, but the buyer was never told (reported as a count, not pass/fail) |
+| I4 | `/status` `sold` equals its holder list, and every ticket confirmed to a buyer appears in it (no lost sales, "phantoms") |
+| A3 | Live audit: `/status` polled during the sale; every snapshot consistent; within a sale no ticket disappears and the count never goes down |
+| U1–U5 | One ticket per user; a winner's request_id reused by another user is never given a ticket; no false "sold out"; no responses from another sale; a ticket holder is never told "sold out" |
+| A2 | Orphaned tickets: sold, but the buyer was never told (a count, not pass/fail) |
 
-## Status
-| Milestone | State |
-|---|---|
-| M1: the naive seller gets caught | done |
-| M2: the safe seller passes | done |
-| M3: a buyer we can trust at scale | done |
-| M4: choosing the allocation strategy from evidence | done |
-| M5: how much load, and where is the bottleneck | done: [results/M5-bottleneck.md](results/M5-bottleneck.md) |
-| M6: the datastore goes slow for 10 s | done: [results/M6-slowdb.md](results/M6-slowdb.md) |
-| M7: kill the datastore mid-sale (TF2) | done: [results/M7-killdb.md](results/M7-killdb.md) |
-| M8: three instances behind nginx (TF1) | done: [results/M8-tf1.md](results/M8-tf1.md) |
-| M10: write-up and clean-machine check | next |
+Buyer options: `docker compose run --rm buyer run --help`. The main ones:
+- `--requests`, `--burst`, `--rate`, `--tickets`: the shape of the stampede.
+- `--processes`: workers sharing the stampede.
+- `--concurrency`: closed-loop mode, only for the C4 comparison.
+- `--retry-unknown N`, `--retry-rate R`: retries with the same request_id, and a retry budget.
+- `--stall-at` / `--stall-for`: make Postgres slow via toxiproxy.
+- `--expect-allocator`: refuse to attack the wrong seller.
+
+## Clean-checkout check
+_See below._

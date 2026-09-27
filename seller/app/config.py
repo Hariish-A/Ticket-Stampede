@@ -27,5 +27,5 @@ def load() -> Settings:
         pool_acquire_timeout=float(env("POOL_ACQUIRE_TIMEOUT", "1.0")),
         command_timeout=float(env("COMMAND_TIMEOUT", "2.0")),
         statement_cache_size=int(env("STATEMENT_CACHE_SIZE", "100")),
-        max_inflight=int(env("MAX_INFLIGHT", "0")),
+        max_inflight=int(env("MAX_INFLIGHT", "64")),  # D24: on by default; 0 disables
     )

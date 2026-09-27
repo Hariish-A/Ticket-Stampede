@@ -13,7 +13,9 @@ x-seller: &seller
     POOL_MAX: ${POOL_MAX:-20}
     POOL_ACQUIRE_TIMEOUT: ${POOL_ACQUIRE_TIMEOUT:-1.0}
     COMMAND_TIMEOUT: ${COMMAND_TIMEOUT:-2.0}
-    MAX_INFLIGHT: ${MAX_INFLIGHT:-0}
+    # Fail-fast admission (D24, results/D24-failfast.md): beyond 64 /buy requests in
+    # flight per instance, answer 503 not_attempted at once. 0 disables it.
+    MAX_INFLIGHT: ${MAX_INFLIGHT:-64}
   depends_on:
     postgres:
       condition: service_healthy

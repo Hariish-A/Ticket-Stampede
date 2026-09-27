@@ -36,21 +36,22 @@ docker compose build -q $SELLERS buyer
 docker compose up -d --wait toxiproxy 2>&1 | grep -v "^ Container" || true
 runs=()
 for v in $VARIANTS; do
-  inflight=0; extra=()
+  inflight=0; extra=(); tag=""
+  case $v in failfast|both) [ -n "${FAILFAST_LIMIT:-}" ] && tag="-$FAILFAST_LIMIT" ;; esac
   case $v in
     baseline) ;;
-    failfast) inflight=64 ;;
+    failfast) inflight=${FAILFAST_LIMIT:-64} ;;
     budget)   extra=(--retry-rate 200) ;;
-    both)     inflight=64; extra=(--retry-rate 200) ;;
+    both)     inflight=${FAILFAST_LIMIT:-64}; extra=(--retry-rate 200) ;;
     closed)   extra=(--concurrency 4) ;;
     *) echo "unknown variant $v" >&2; exit 2 ;;
   esac
   start_sellers DB_HOST=toxiproxy DB_PORT=5433 ALLOCATOR=skiplocked MAX_INFLIGHT=$inflight
   echo ">>> $v (MAX_INFLIGHT=$inflight per instance ${extra[*]:-})"
   docker compose run --rm --no-deps buyer run --target "$TARGET" --expect-allocator skiplocked \
-    --scenario "slowdb$suffix-$v" "${COMMON[@]}" "${extra[@]}" "$@" \
+    --scenario "slowdb$suffix-$v$tag" "${COMMON[@]}" "${extra[@]}" "$@" \
     | grep -E "^\| (I[1-4]|A3) |Fault injected|buyers \(user" || true
-  runs+=("$(ls -td results/*-slowdb"$suffix"-"$v" | head -1)")
+  runs+=("$(ls -td results/*-slowdb"$suffix"-"$v$tag" | head -1)")
 done
 
 # Put the sellers back on the direct connection, unprotected, for the other scenarios.
