@@ -25,7 +25,7 @@ git clone https://github.com/Hariish-A/Ticket-Stampede.git && cd Ticket-Stampede
 ./scripts/test.sh   # builds the images, then 39 buyer unit tests + 34 seller integration tests against real Postgres
 ./scripts/c1.sh     # the same 51,000-request stampede against the naive seller (FAILs) and the safe one (PASSes)
 ```
-Measured on a clean checkout: _see §Clean-checkout check below_.
+**Measured** from a fresh clone of this repo with a fresh database volume: `test.sh` 34 s + `c1.sh` 126 s = **2 min 40 s**. That was with Docker's layer cache warm; see [Clean-checkout check](#clean-checkout-check) for a cold machine.
 
 Each run prints its report and saves it to `results/<timestamp>-<scenario>/`: `report.md` and `report.json`, plus `ledger.jsonl` with every request (not committed). Clean up with `docker compose down -v`.
 
@@ -79,4 +79,13 @@ Buyer options: `docker compose run --rm buyer run --help`. The main ones:
 - `--expect-allocator`: refuse to attack the wrong seller.
 
 ## Clean-checkout check
-_See below._
+Run on 2026-09-27, Windows 11, Git Bash, Docker Desktop 27, from `git clone` of commit `04d0f9d` into an empty folder, after `docker compose down -v`:
+
+| step | time | result |
+|---|---|---|
+| `./scripts/test.sh` | 34 s | 39 + 34 tests passed |
+| `./scripts/c1.sh` | 126 s | naive FAIL (2,553 tickets for 100 seats), skiplocked PASS |
+
+**A truly cold machine** also pulls `postgres:16-alpine`, `nginx:1.27-alpine`, `toxiproxy` and `python:3.12-slim`, and pip-installs three small requirement sets. That adds about 1–2 minutes on a normal connection. On a slow one it can take longer: in M10 PyPI answered in ~20 s, so pip has `--timeout 60 --retries 10`, and a failed build can simply be rerun. Dependencies are installed before code is copied, so only the first build pays this cost.
+
+**Runs recorded before 2026-09-27 used `MAX_INFLIGHT=0`** (fail-fast off). From then on it is on at 64 by default ([D24](results/D24-failfast.md)). The reference C1 run with the shipped defaults: [naive](results/20260927T025823Z-c1-naive/report.md), [skiplocked](results/20260927T025924Z-c1-skiplocked/report.md).
